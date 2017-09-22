@@ -1,0 +1,50 @@
+---
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: zipkinproxy
+  # Putting this in the istio-system namespace makes it work with Istio (for
+  # Istio 0.2)
+  namespace: istio-system
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: zipkinproxy
+    spec:
+      containers:
+      - name: zipkinproxy
+        image: honeycombio/zipkinproxy
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 9411
+        command:
+          - /go/bin/zipkinproxy
+        args:
+          - -d
+          - zipkin-test
+          - -k
+          - "$(HONEYCOMB_WRITEKEY)"
+        env:
+        - name: HONEYCOMB_WRITEKEY
+          valueFrom:
+            secretKeyRef:
+              key: key
+              name: honeycomb-writekey
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: zipkin
+  labels:
+    app: zipkin
+  namespace: istio-system
+spec:
+  ports:
+  - name: zipkinproxy
+    port: 9411
+    targetPort: 9411
+  selector:
+    app: zipkinproxy
