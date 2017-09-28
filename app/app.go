@@ -11,9 +11,9 @@ import (
 )
 
 type App struct {
-	Port       string
-	server     *http.Server
-	Forwarders []forwarders.Forwarder
+	Port      string
+	server    *http.Server
+	Forwarder forwarders.Forwarder
 }
 
 func (a *App) handleSpans(w http.ResponseWriter, r *http.Request) {
@@ -44,10 +44,8 @@ func (a *App) handleSpans(w http.ResponseWriter, r *http.Request) {
 		fmt.Println("unknown content type", contentType)
 	}
 
-	for _, f := range a.Forwarders {
-		if err := f.Forward(spans); err != nil {
-			// TODO log something
-		}
+	if err := a.Forwarder.Forward(spans); err != nil {
+		// TODO log something
 	}
 	w.WriteHeader(http.StatusAccepted)
 }

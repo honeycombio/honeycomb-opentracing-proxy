@@ -37,26 +37,23 @@ func main() {
 		os.Exit(1)
 	}
 
-	var fw []forwarders.Forwarder
-
-	honeycombForwarder := &forwarders.HoneycombForwarder{
-		Writekey: options.Writekey,
-		Dataset:  options.Dataset,
-	}
-	honeycombForwarder.Start()
-	defer honeycombForwarder.Stop()
-	fw = append(fw, honeycombForwarder)
-
+	forwarder := &forwarders.CompositeForwarder{}
+	forwarder.Add(
+		&forwarders.HoneycombForwarder{
+			Writekey: options.Writekey,
+			Dataset:  options.Dataset,
+		},
+	)
 	if options.Debug {
-		stdoutForwarder := &forwarders.StdoutForwarder{}
-		stdoutForwarder.Start()
-		defer stdoutForwarder.Stop()
-		fw = append(fw, stdoutForwarder)
+		forwarder.Add(&forwarders.StdoutForwarder{})
 	}
+
+	forwarder.Start()
+	defer forwarder.Stop()
 
 	a := &app.App{
-		Port:       options.Port,
-		Forwarders: fw,
+		Port:      options.Port,
+		Forwarder: forwarder,
 	}
 	defer a.Stop()
 	a.Start()
