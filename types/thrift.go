@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net"
 
 	"github.com/apache/thrift/lib/go/thrift"
 	"github.com/uber/jaeger/thrift-gen/zipkincore"
@@ -31,7 +32,11 @@ func convertThriftSpan(ts *zipkincore.Span) *Span {
 
 	for _, ba := range ts.BinaryAnnotations {
 		s.BinaryAnnotations[ba.Key] = string(ba.Value)
-		// TODO: do something with endpoint value
+		if endpoint := ba.Host; endpoint != nil {
+			s.HostIPv4 = convertIPv4(endpoint.Ipv4)
+			s.ServiceName = endpoint.ServiceName
+			s.Port = int(endpoint.Port)
+		}
 	}
 	// TODO: do something with annotations
 	return s
@@ -39,6 +44,10 @@ func convertThriftSpan(ts *zipkincore.Span) *Span {
 
 func convertID(id int64) string {
 	return fmt.Sprintf("%x", id) // TODO is this right?
+}
+
+func convertIPv4(ip int32) string {
+	return net.IPv4(byte(ip>>24), byte(ip>>16), byte(ip>>8), byte(ip)).String()
 }
 
 // from jaeger internals but not exported there

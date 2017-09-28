@@ -45,7 +45,21 @@ func convertJSONSpan(zs zipkinJSONSpan) *Span {
 	}
 
 	for _, ba := range zs.BinaryAnnotations {
+		if ba == nil {
+			continue
+		}
+		if ba.Key == "cs" || ba.Key == "sr" {
+			// Special case, skip this for now
+			// https://github.com/openzipkin/zipkin/blob/master/zipkin/src/main/java/zipkin/Endpoint.java#L35
+			continue
+		}
 		s.BinaryAnnotations[ba.Key] = string(ba.Value)
+		if endpoint := ba.Endpoint; endpoint != nil {
+			s.HostIPv4 = endpoint.Ipv4
+			s.ServiceName = endpoint.ServiceName
+			s.Port = endpoint.Port
+		}
+
 		// TODO: do something with endpoint value
 	}
 	// TODO: do something with annotations
@@ -68,12 +82,12 @@ type BinaryAnnotation struct {
 	Key            string         `json:"key"`
 	Value          string         `json:"value"`
 	AnnotationType AnnotationType `json:"annotationType"`
-	Host           *Endpoint      `json:"host,omitempty"`
+	Endpoint       *Endpoint      `json:"host,omitempty"`
 }
 
 type Endpoint struct {
-	Ipv4        int32  `json:"ipv4"`
-	Port        int16  `json:"port"`
+	Ipv4        string `json:"ipv4"`
+	Port        int    `json:"port"`
 	ServiceName string `json:"serviceName"`
 }
 
