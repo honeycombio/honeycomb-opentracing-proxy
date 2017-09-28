@@ -67,7 +67,7 @@ func convertJSONSpan(zs zipkinJSONSpan) *Span {
 }
 
 func convertTimestamp(tsMicros int64) time.Time {
-	return time.Unix(tsMicros/1000000, (tsMicros%1000000)*1000)
+	return time.Unix(tsMicros/1000000, (tsMicros%1000000)*1000).UTC()
 }
 
 //

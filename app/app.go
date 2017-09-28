@@ -17,8 +17,6 @@ type App struct {
 }
 
 func (a *App) handleSpans(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("handling spans!")
-
 	var spans []*types.Span
 	var err error
 

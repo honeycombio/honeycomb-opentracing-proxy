@@ -1,6 +1,8 @@
 package types
 
 import (
+	"bytes"
+	"encoding/binary"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -31,7 +33,7 @@ func convertThriftSpan(ts *zipkincore.Span) *Span {
 	}
 
 	for _, ba := range ts.BinaryAnnotations {
-		s.BinaryAnnotations[ba.Key] = string(ba.Value)
+		s.BinaryAnnotations[ba.Key] = convertBinaryAnnotationValue(ba)
 		if endpoint := ba.Host; endpoint != nil {
 			s.HostIPv4 = convertIPv4(endpoint.Ipv4)
 			s.ServiceName = endpoint.ServiceName
@@ -48,6 +50,23 @@ func convertID(id int64) string {
 
 func convertIPv4(ip int32) string {
 	return net.IPv4(byte(ip>>24), byte(ip>>16), byte(ip>>8), byte(ip)).String()
+}
+
+func convertBinaryAnnotationValue(ba *zipkincore.BinaryAnnotation) interface{} {
+	switch ba.AnnotationType {
+	case zipkincore.AnnotationType_BOOL:
+		return bytes.Compare(ba.Value, []byte{0}) == 1
+	case zipkincore.AnnotationType_BYTES:
+		return ba.Value
+	case zipkincore.AnnotationType_DOUBLE, zipkincore.AnnotationType_I16, zipkincore.AnnotationType_I32, zipkincore.AnnotationType_I64:
+		var number interface{}
+		binary.Read(bytes.NewReader(ba.Value), binary.BigEndian, number)
+		return number
+	case zipkincore.AnnotationType_STRING:
+		return string(ba.Value)
+	}
+
+	return ba.Value
 }
 
 // from jaeger internals but not exported there
