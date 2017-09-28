@@ -1,9 +1,12 @@
 package app
 
 import (
+	"bytes"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"sync"
 	"testing"
 	"time"
 
@@ -103,4 +106,56 @@ func TestThriftDecoding(t *testing.T) {
 		},
 	}
 	assert.Equal(mf.spans[:4], expectedSpans)
+}
+
+func TestUpstreaming(t *testing.T) {
+	m := newMockUpstream()
+	defer m.server.Close()
+	assert := assert.New(t)
+	mf := &MockForwarder{}
+
+	a := &App{
+		Forwarder:     mf,
+		Upstream:      m.server.URL,
+		testWaitGroup: &sync.WaitGroup{},
+	}
+	a.Start()
+	defer a.Stop()
+
+	testFile, err := os.Open("testdata/payload_0.thrift")
+	assert.NoError(err)
+
+	data, err := ioutil.ReadAll(testFile)
+	assert.NoError(err)
+	r := httptest.NewRequest("POST", "/api/v1/spans", bytes.NewReader(data))
+	r.Header.Add("Content-Type", "application/x-thrift")
+	w := httptest.NewRecorder()
+	a.handleSpans(w, r)
+	assert.Equal(w.Code, http.StatusAccepted)
+
+	a.testWaitGroup.Wait()
+
+	assert.Equal(len(m.payloads), 1)
+	assert.Equal(m.payloads[0], data)
+}
+
+type mockUpstream struct {
+	server   *httptest.Server
+	payloads [][]byte
+}
+
+func newMockUpstream() *mockUpstream {
+	var payloads [][]byte
+	mu := &mockUpstream{
+		payloads: payloads,
+	}
+
+	mu.server = httptest.NewServer(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			defer r.Body.Close()
+			data, _ := ioutil.ReadAll(r.Body)
+			mu.payloads = append(mu.payloads, data)
+			w.WriteHeader(http.StatusAccepted)
+		}))
+	return mu
 }

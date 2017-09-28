@@ -3,7 +3,6 @@ package types
 import (
 	"encoding/json"
 	"io"
-	"time"
 )
 
 func DecodeJSON(r io.Reader) ([]*Span, error) {
@@ -59,18 +58,10 @@ func convertJSONSpan(zs zipkinJSONSpan) *Span {
 			s.ServiceName = endpoint.ServiceName
 			s.Port = endpoint.Port
 		}
-
-		// TODO: do something with endpoint value
 	}
 	// TODO: do something with annotations
 	return s
 }
-
-func convertTimestamp(tsMicros int64) time.Time {
-	return time.Unix(tsMicros/1000000, (tsMicros%1000000)*1000).UTC()
-}
-
-//
 
 type Annotation struct {
 	Timestamp int64     `json:"timestamp"`
@@ -79,10 +70,9 @@ type Annotation struct {
 }
 
 type BinaryAnnotation struct {
-	Key            string         `json:"key"`
-	Value          string         `json:"value"`
-	AnnotationType AnnotationType `json:"annotationType"`
-	Endpoint       *Endpoint      `json:"host,omitempty"`
+	Key      string    `json:"key"`
+	Value    string    `json:"value"` // TODO: are BinaryAnnotations really always strings in the Zipkin JSON API?
+	Endpoint *Endpoint `json:"host,omitempty"`
 }
 
 type Endpoint struct {
@@ -90,15 +80,3 @@ type Endpoint struct {
 	Port        int    `json:"port"`
 	ServiceName string `json:"serviceName"`
 }
-
-type AnnotationType int64
-
-const (
-	AnnotationType_BOOL   AnnotationType = 0
-	AnnotationType_BYTES  AnnotationType = 1
-	AnnotationType_I16    AnnotationType = 2
-	AnnotationType_I32    AnnotationType = 3
-	AnnotationType_I64    AnnotationType = 4
-	AnnotationType_DOUBLE AnnotationType = 5
-	AnnotationType_STRING AnnotationType = 6
-)

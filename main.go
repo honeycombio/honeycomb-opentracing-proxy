@@ -19,7 +19,8 @@ type Options struct {
 	Port     string `long:"port" short:"p" description:"Port to listen on" default:":9411"`
 	APIHost  string `long:"api_host" description:"Hostname for the Honeycomb API server" default:"https://api.honeycomb.io/"`
 
-	Debug bool `long:"debug" description:"Also print spans to stdout"`
+	Debug    bool   `long:"debug" description:"Also print spans to stdout"`
+	Upstream string `long:"upstream" description:"Upstream host to forward span data along to (e.g., https://zipkin.example.com:9411)."`
 }
 
 func main() {
@@ -54,9 +55,14 @@ func main() {
 	a := &app.App{
 		Port:      options.Port,
 		Forwarder: forwarder,
+		Upstream:  options.Upstream,
+	}
+	err = a.Start()
+	if err != nil {
+		fmt.Printf("Error starting app: %v\n", err)
+		os.Exit(1)
 	}
 	defer a.Stop()
-	a.Start()
 	waitForSignal()
 }
 
