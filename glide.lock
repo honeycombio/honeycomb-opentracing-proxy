@@ -1,0 +1,72 @@
+hash: f5f19b40d1c08863d28f21a0e02d24d545666957096ba3388eb8c66517ce66e9
+updated: 2017-09-29T00:59:49.521987515-05:00
+imports:
+- name: github.com/apache/thrift
+  version: b2a4d4ae21c789b689dd162deb819665567f481c
+  subpackages:
+  - lib/go/thrift
+- name: github.com/facebookgo/clock
+  version: 600d898af40aa09a7a93ecb9265d87b0504b6f03
+- name: github.com/facebookgo/inject
+  version: d5029152fecb2a8e68f7f8eb3c6391fc8ee70496
+- name: github.com/facebookgo/limitgroup
+  version: 6abd8d71ec01451d7f1929eacaa263bbe2935d05
+- name: github.com/facebookgo/muster
+  version: fd3d7953fd52354a74b9f6b3d70d0c9650c4ec2a
+- name: github.com/facebookgo/startstop
+  version: 69abd424c676eb577bb9bb917a98289d7d752b15
+- name: github.com/facebookgo/structtag
+  version: 217e25fb96916cc60332e399c9aa63f5c422ceed
+- name: github.com/honeycombio/libhoney-go
+  version: 0c0e8c402eeef843eafc2bad6dccb16baf565d2f
+- name: github.com/jessevdk/go-flags
+  version: 96dc06278ce32a0e9d957d590bb987c81ee66407
+- name: github.com/opentracing/opentracing-go
+  version: 1949ddbfd147afd4d964a9f00b24eb291e0e7c38
+  subpackages:
+  - ext
+  - log
+- name: github.com/Sirupsen/logrus
+  version: f006c2ac4710855cf0f916dd6b77acf6b048dc6e
+- name: github.com/uber-go/atomic
+  version: 54f72d32435d760d5604f17a82e2435b28dc4ba5
+- name: github.com/uber/jaeger
+  version: 2f5fcfb36cbbddd0706902f77931b3298443bfa0
+  subpackages:
+  - thrift-gen/zipkincore
+- name: github.com/uber/tchannel-go
+  version: 1a0e35378f6f721bc07f6c4466bc9701ed70b506
+  subpackages:
+  - relay
+  - thrift
+  - thrift/gen-go/meta
+  - tnet
+  - trand
+  - typed
+- name: golang.org/x/crypto
+  version: 9e7f5dc375abeb9619ea3c5c58502c428f457aa2
+  subpackages:
+  - ssh/terminal
+- name: golang.org/x/net
+  version: 0a9397675ba34b2845f758fe3cd68828369c6517
+  subpackages:
+  - context
+- name: golang.org/x/sys
+  version: 320cb01ddbbf0473674c2585f9b6e245721de355
+  subpackages:
+  - unix
+- name: gopkg.in/alexcesaro/statsd.v2
+  version: 7fea3f0d2fab1ad973e641e51dba45443a311a90
+testImports:
+- name: github.com/davecgh/go-spew
+  version: a476722483882dd40b8111f0eb64e1d7f43f56e4
+  subpackages:
+  - spew
+- name: github.com/pmezard/go-difflib
+  version: 792786c7400a136282c1664665ae0a8db921c6c2
+  subpackages:
+  - difflib
+- name: github.com/stretchr/testify
+  version: 69483b4bd14f5845b5a1e55bca19e954e827f1d0
+  subpackages:
+  - assert
