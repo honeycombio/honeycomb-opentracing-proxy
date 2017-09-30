@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
 	"os/signal"
 	"strings"
@@ -20,7 +21,7 @@ type Options struct {
 	APIHost  string `long:"api_host" description:"Hostname for the Honeycomb API server" default:"https://api.honeycomb.io/"`
 
 	Debug    bool   `long:"debug" description:"Also print spans to stdout"`
-	Upstream string `long:"upstream" description:"Upstream host to forward span data along to (e.g., https://zipkin.example.com:9411)."`
+	Upstream string `long:"upstream" description:"A host to forward span data along to (e.g., https://zipkin.example.com:9411). Use this to send data to Honeycomb and another Zipkin-compatible backend."`
 }
 
 func main() {
@@ -52,10 +53,25 @@ func main() {
 	forwarder.Start()
 	defer forwarder.Stop()
 
+	var mirror *app.Mirror
+	if options.Upstream != "" {
+		upstreamURL, err := url.Parse(options.Upstream)
+		if err != nil {
+			fmt.Printf("Invalid upstream value %s", options.Upstream)
+			os.Exit(1)
+		}
+		upstreamURL.Path = "/api/v1/spans"
+		mirror = &app.Mirror{
+			UpstreamURL: upstreamURL,
+		}
+		mirror.Start()
+		defer mirror.Stop()
+	}
+
 	a := &app.App{
 		Port:      options.Port,
 		Forwarder: forwarder,
-		Upstream:  options.Upstream,
+		Mirror:    mirror,
 	}
 	err = a.Start()
 	if err != nil {

@@ -3,6 +3,7 @@ package app
 import (
 	"bytes"
 	"context"
+	"errors"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -16,13 +17,10 @@ import (
 )
 
 type App struct {
-	Port        string
-	server      *http.Server
-	Forwarder   forwarders.Forwarder
-	Upstream    string
-	upstreamUrl *url.URL
-
-	testWaitGroup *sync.WaitGroup
+	Port      string
+	server    *http.Server
+	Forwarder forwarders.Forwarder
+	Mirror    *Mirror
 }
 
 func (a *App) handleSpans(w http.ResponseWriter, r *http.Request) {
@@ -35,11 +33,11 @@ func (a *App) handleSpans(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("error reading request"))
 	}
 
-	if a.upstreamUrl != nil {
-		if a.testWaitGroup != nil {
-			a.testWaitGroup.Add(1)
+	if a.Mirror != nil {
+		err := a.Mirror.Send(data)
+		if err != nil {
+			logrus.WithError(err).Info("Error mirroring data")
 		}
-		go sendUpstream(a.upstreamUrl.String(), bytes.NewReader(data), a.testWaitGroup)
 	}
 
 	var spans []*types.Span
@@ -69,15 +67,6 @@ func (a *App) handleSpans(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) Start() error {
-
-	if a.Upstream != "" {
-		var err error
-		a.upstreamUrl, err = url.Parse(a.Upstream)
-		if err != nil {
-			return err
-		}
-	}
-
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/v1/spans", a.handleSpans)
 
@@ -96,22 +85,66 @@ func (a *App) Stop() error {
 	return a.server.Shutdown(ctx)
 }
 
-func sendUpstream(upstream string, body io.Reader, wg *sync.WaitGroup) {
-	if wg != nil {
-		defer wg.Done()
+type Mirror struct {
+	UpstreamURL *url.URL
+	BufSize     int
+
+	payloads chan []byte
+	stopped  bool
+	wg       sync.WaitGroup
+}
+
+func (m *Mirror) Start() error {
+	if m.BufSize == 0 {
+		m.BufSize = 4096
 	}
-	r, err := http.NewRequest("POST", upstream, body)
-	if err != nil {
-		logrus.WithError(err).Info("Error building upstream request")
-		return
+	m.payloads = make(chan []byte, m.BufSize)
+	m.wg.Add(1)
+	go m.run()
+	return nil
+}
+
+func (m *Mirror) Stop() error {
+	m.stopped = true
+	if m.payloads == nil {
+		return nil
 	}
-	client := &http.Client{}
-	resp, err := client.Do(r)
-	if err != nil {
-		logrus.WithError(err).Info("Error sending payload upstream")
+	close(m.payloads)
+	m.wg.Wait()
+	return nil
+}
+
+func (m *Mirror) run() {
+	for p := range m.payloads {
+		r, err := http.NewRequest("POST", m.UpstreamURL.String(), bytes.NewReader(p))
+		if err != nil {
+			logrus.WithError(err).Info("Error building upstream request")
+			return
+		}
+		client := &http.Client{}
+		resp, err := client.Do(r)
+		if err != nil {
+			logrus.WithError(err).Info("Error sending payload upstream")
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusAccepted {
+			responseBody, _ := ioutil.ReadAll(&io.LimitedReader{resp.Body, 1024})
+			logrus.WithField("status", resp.Status).
+				WithField("response", string(responseBody)).
+				Info("Error response sending payload upstream")
+		}
 	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusAccepted {
-		logrus.WithField("status", resp.Status).Info("Error sending payload upstream")
+	m.wg.Done()
+}
+
+func (m *Mirror) Send(data []byte) error {
+	if m.stopped {
+		return errors.New("sink stopped")
+	}
+	select {
+	case m.payloads <- data:
+		return nil
+	default:
+		return errors.New("sink full")
 	}
 }

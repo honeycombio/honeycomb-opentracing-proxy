@@ -5,8 +5,8 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
-	"sync"
 	"testing"
 	"time"
 
@@ -109,15 +109,22 @@ func TestThriftDecoding(t *testing.T) {
 }
 
 func TestUpstreaming(t *testing.T) {
+	assert := assert.New(t)
 	m := newMockUpstream()
 	defer m.server.Close()
-	assert := assert.New(t)
 	mf := &MockForwarder{}
 
+	url, err := url.Parse(m.server.URL)
+	assert.NoError(err)
+
+	mirror := &Mirror{
+		UpstreamURL: url,
+	}
+	mirror.Start()
+
 	a := &App{
-		Forwarder:     mf,
-		Upstream:      m.server.URL,
-		testWaitGroup: &sync.WaitGroup{},
+		Forwarder: mf,
+		Mirror:    mirror,
 	}
 	a.Start()
 	defer a.Stop()
@@ -133,7 +140,7 @@ func TestUpstreaming(t *testing.T) {
 	a.handleSpans(w, r)
 	assert.Equal(w.Code, http.StatusAccepted)
 
-	a.testWaitGroup.Wait()
+	mirror.Stop()
 
 	assert.Equal(len(m.payloads), 1)
 	assert.Equal(m.payloads[0], data)
