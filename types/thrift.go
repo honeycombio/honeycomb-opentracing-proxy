@@ -33,6 +33,11 @@ func convertThriftSpan(ts *zipkincore.Span) *Span {
 	}
 
 	for _, ba := range ts.BinaryAnnotations {
+		if ba.Key == "cs" || ba.Key == "sr" {
+			// Special case, skip this for now
+			// https://github.com/openzipkin/zipkin/blob/master/zipkin/src/main/java/zipkin/Endpoint.java#L35
+			continue
+		}
 		s.BinaryAnnotations[ba.Key] = convertBinaryAnnotationValue(ba)
 		if endpoint := ba.Host; endpoint != nil {
 			s.HostIPv4 = convertIPv4(endpoint.Ipv4)

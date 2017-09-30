@@ -12,17 +12,21 @@ import (
 	"time"
 
 	"github.com/Sirupsen/logrus"
-	"github.com/honeycombio/zipkinproxy/forwarders"
+	"github.com/honeycombio/zipkinproxy/sinks"
 	"github.com/honeycombio/zipkinproxy/types"
 )
 
 type App struct {
-	Port      string
-	server    *http.Server
-	Forwarder forwarders.Forwarder
-	Mirror    *Mirror
+	Port   string
+	server *http.Server
+	Sink   sinks.Sink
+	Mirror *Mirror
 }
 
+// handleSpans handles the /api/v1/spans POST endpoint. It decodes the request
+// body and normalizes it to a slice of types.Span instances. The Sink
+// handles that slice. The Mirror, if configured, takes the request body
+// verbatim and sends it to another host.
 func (a *App) handleSpans(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
@@ -60,7 +64,7 @@ func (a *App) handleSpans(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := a.Forwarder.Forward(spans); err != nil {
+	if err := a.Sink.Send(spans); err != nil {
 		logrus.WithError(err).Info("error forwarding spans")
 	}
 	w.WriteHeader(http.StatusAccepted)
@@ -86,8 +90,9 @@ func (a *App) Stop() error {
 }
 
 type Mirror struct {
-	UpstreamURL *url.URL
-	BufSize     int
+	DownstreamURL  *url.URL
+	BufSize        int
+	MaxConcurrency int
 
 	payloads chan []byte
 	stopped  bool
@@ -95,12 +100,17 @@ type Mirror struct {
 }
 
 func (m *Mirror) Start() error {
+	if m.MaxConcurrency == 0 {
+		m.MaxConcurrency = 100
+	}
 	if m.BufSize == 0 {
 		m.BufSize = 4096
 	}
 	m.payloads = make(chan []byte, m.BufSize)
-	m.wg.Add(1)
-	go m.run()
+	for i := 0; i < m.MaxConcurrency; i++ {
+		m.wg.Add(1)
+		go m.runWorker()
+	}
 	return nil
 }
 
@@ -114,24 +124,24 @@ func (m *Mirror) Stop() error {
 	return nil
 }
 
-func (m *Mirror) run() {
+func (m *Mirror) runWorker() {
 	for p := range m.payloads {
-		r, err := http.NewRequest("POST", m.UpstreamURL.String(), bytes.NewReader(p))
+		r, err := http.NewRequest("POST", m.DownstreamURL.String(), bytes.NewReader(p))
 		if err != nil {
-			logrus.WithError(err).Info("Error building upstream request")
+			logrus.WithError(err).Info("Error building downstream request")
 			return
 		}
 		client := &http.Client{}
 		resp, err := client.Do(r)
 		if err != nil {
-			logrus.WithError(err).Info("Error sending payload upstream")
+			logrus.WithError(err).Info("Error sending payload downstream")
 		}
 		defer resp.Body.Close()
 		if resp.StatusCode != http.StatusAccepted {
 			responseBody, _ := ioutil.ReadAll(&io.LimitedReader{resp.Body, 1024})
 			logrus.WithField("status", resp.Status).
 				WithField("response", string(responseBody)).
-				Info("Error response sending payload upstream")
+				Info("Error response sending payload downstream")
 		}
 	}
 	m.wg.Done()

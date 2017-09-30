@@ -10,7 +10,7 @@ import (
 	"syscall"
 
 	"github.com/honeycombio/zipkinproxy/app"
-	"github.com/honeycombio/zipkinproxy/forwarders"
+	"github.com/honeycombio/zipkinproxy/sinks"
 	flag "github.com/jessevdk/go-flags"
 )
 
@@ -20,8 +20,8 @@ type Options struct {
 	Port     string `long:"port" short:"p" description:"Port to listen on" default:":9411"`
 	APIHost  string `long:"api_host" description:"Hostname for the Honeycomb API server" default:"https://api.honeycomb.io/"`
 
-	Debug    bool   `long:"debug" description:"Also print spans to stdout"`
-	Upstream string `long:"upstream" description:"A host to forward span data along to (e.g., https://zipkin.example.com:9411). Use this to send data to Honeycomb and another Zipkin-compatible backend."`
+	Debug      bool   `long:"debug" description:"Also print spans to stdout"`
+	Downstream string `long:"downstream" description:"A host to forward span data along to (e.g., https://zipkin.example.com:9411). Use this to send data to Honeycomb and another Zipkin-compatible backend."`
 }
 
 func main() {
@@ -39,39 +39,39 @@ func main() {
 		os.Exit(1)
 	}
 
-	forwarder := &forwarders.CompositeForwarder{}
-	forwarder.Add(
-		&forwarders.HoneycombForwarder{
+	sink := &sinks.CompositeSink{}
+	sink.Add(
+		&sinks.HoneycombSink{
 			Writekey: options.Writekey,
 			Dataset:  options.Dataset,
 		},
 	)
 	if options.Debug {
-		forwarder.Add(&forwarders.StdoutForwarder{})
+		sink.Add(&sinks.StdoutSink{})
 	}
 
-	forwarder.Start()
-	defer forwarder.Stop()
+	sink.Start()
+	defer sink.Stop()
 
 	var mirror *app.Mirror
-	if options.Upstream != "" {
-		upstreamURL, err := url.Parse(options.Upstream)
+	if options.Downstream != "" {
+		downstreamURL, err := url.Parse(options.Downstream)
 		if err != nil {
-			fmt.Printf("Invalid upstream value %s", options.Upstream)
+			fmt.Printf("Invalid downstream value %s", options.Downstream)
 			os.Exit(1)
 		}
-		upstreamURL.Path = "/api/v1/spans"
+		downstreamURL.Path = "/api/v1/spans"
 		mirror = &app.Mirror{
-			UpstreamURL: upstreamURL,
+			DownstreamURL: downstreamURL,
 		}
 		mirror.Start()
 		defer mirror.Stop()
 	}
 
 	a := &app.App{
-		Port:      options.Port,
-		Forwarder: forwarder,
-		Mirror:    mirror,
+		Port:   options.Port,
+		Sink:   sink,
+		Mirror: mirror,
 	}
 	err = a.Start()
 	if err != nil {

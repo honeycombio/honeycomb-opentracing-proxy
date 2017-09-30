@@ -1,4 +1,4 @@
-package forwarders
+package sinks
 
 import (
 	"fmt"
@@ -8,16 +8,16 @@ import (
 	"github.com/honeycombio/zipkinproxy/types"
 )
 
-type HoneycombForwarder struct {
+type HoneycombSink struct {
 	Writekey string
 	Dataset  string
 	// TODO use builder to allow for multiple datasets?
 }
 
-func (hf *HoneycombForwarder) Start() error {
+func (hs *HoneycombSink) Start() error {
 	libhoney.Init(libhoney.Config{
-		WriteKey: hf.Writekey,
-		Dataset:  hf.Dataset,
+		WriteKey: hs.Writekey,
+		Dataset:  hs.Dataset,
 	})
 
 	go func() {
@@ -29,11 +29,11 @@ func (hf *HoneycombForwarder) Start() error {
 	return nil
 }
 
-func (hf *HoneycombForwarder) Stop() error {
+func (hs *HoneycombSink) Stop() error {
 	return nil
 }
 
-func (hf *HoneycombForwarder) Forward(spans []*types.Span) error {
+func (hs *HoneycombSink) Send(spans []*types.Span) error {
 	for _, s := range spans {
 		ev := libhoney.NewEvent()
 		ev.AddField("id", s.ID)

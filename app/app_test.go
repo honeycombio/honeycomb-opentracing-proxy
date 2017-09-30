@@ -14,24 +14,24 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type MockForwarder struct {
+type MockSink struct {
 	spans []*types.Span
 }
 
-func (mf *MockForwarder) Forward(spans []*types.Span) error {
-	mf.spans = append(mf.spans, spans...)
+func (ms *MockSink) Send(spans []*types.Span) error {
+	ms.spans = append(ms.spans, spans...)
 	return nil
 }
 
-func (mf *MockForwarder) Start() error { return nil }
-func (mf *MockForwarder) Stop() error  { return nil }
+func (ms *MockSink) Start() error { return nil }
+func (ms *MockSink) Stop() error  { return nil }
 
 func TestThriftDecoding(t *testing.T) {
 	assert := assert.New(t)
-	mf := &MockForwarder{}
+	ms := &MockSink{}
 
 	a := &App{
-		Forwarder: mf,
+		Sink: ms,
 	}
 
 	thriftPayload, err := os.Open("testdata/payload_0.thrift")
@@ -105,26 +105,28 @@ func TestThriftDecoding(t *testing.T) {
 			DurationMs: 9.98,
 		},
 	}
-	assert.Equal(mf.spans[:4], expectedSpans)
+	assert.Equal(ms.spans[:4], expectedSpans)
 }
 
-func TestUpstreaming(t *testing.T) {
+// TestMirroring tests the mirroring of unmodified request data to a downstream
+// service.
+func TestMirroring(t *testing.T) {
 	assert := assert.New(t)
-	m := newMockUpstream()
+	m := newMockDownstream()
 	defer m.server.Close()
-	mf := &MockForwarder{}
+	ms := &MockSink{}
 
 	url, err := url.Parse(m.server.URL)
 	assert.NoError(err)
 
 	mirror := &Mirror{
-		UpstreamURL: url,
+		DownstreamURL: url,
 	}
 	mirror.Start()
 
 	a := &App{
-		Forwarder: mf,
-		Mirror:    mirror,
+		Sink:   ms,
+		Mirror: mirror,
 	}
 	a.Start()
 	defer a.Stop()
@@ -146,14 +148,14 @@ func TestUpstreaming(t *testing.T) {
 	assert.Equal(m.payloads[0], data)
 }
 
-type mockUpstream struct {
+type mockDownstream struct {
 	server   *httptest.Server
 	payloads [][]byte
 }
 
-func newMockUpstream() *mockUpstream {
+func newMockDownstream() *mockDownstream {
 	var payloads [][]byte
-	mu := &mockUpstream{
+	mu := &mockDownstream{
 		payloads: payloads,
 	}
 

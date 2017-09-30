@@ -10,13 +10,14 @@ zipkinproxy -d $DATASET -k $WRITEKEY
 # Write spans to stdout
 zipkinproxy --debug
 
-# Forward spans to an upstream "real" Zipkin collector
-zipkinproxy --upstream https://myzipkin.example.com:9411
+# Forward spans to a downstream "real" Zipkin collector
+zipkinproxy --downstream https://myzipkin.example.com:9411
 ```
 
 
 Next steps:
 
+- support sending spans to different datasets based on some criterion?
 - more tests
 - retry logic
 - do something useful with annotations
