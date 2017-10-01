@@ -8,6 +8,8 @@ import (
 	"github.com/honeycombio/zipkinproxy/types"
 )
 
+// HoneycombSink implements the Sink interface. It sends spans to the Honeycomb
+// API.
 type HoneycombSink struct {
 	Writekey string
 	Dataset  string

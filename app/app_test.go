@@ -26,13 +26,13 @@ func (ms *MockSink) Send(spans []*types.Span) error {
 func (ms *MockSink) Start() error { return nil }
 func (ms *MockSink) Stop() error  { return nil }
 
+// TestThriftDecoding takes a capture of a zipkin thrift payload, and ensures
+// that it's decoded and forwarded correctly.
 func TestThriftDecoding(t *testing.T) {
 	assert := assert.New(t)
 	ms := &MockSink{}
 
-	a := &App{
-		Sink: ms,
-	}
+	a := &App{Sink: ms}
 
 	thriftPayload, err := os.Open("testdata/payload_0.thrift")
 	assert.NoError(err)
@@ -106,6 +106,7 @@ func TestThriftDecoding(t *testing.T) {
 		},
 	}
 	assert.Equal(ms.spans[:4], expectedSpans)
+	assert.Equal(w.Code, http.StatusAccepted)
 }
 
 // TestMirroring tests the mirroring of unmodified request data to a downstream

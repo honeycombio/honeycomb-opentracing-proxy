@@ -5,6 +5,8 @@ import (
 	"io"
 )
 
+// DecodeJSON reads an array of JSON-encoded spans from an io.Reader, and
+// converts that array to a slice of Spans.
 func DecodeJSON(r io.Reader) ([]*Span, error) {
 	var jsonSpans []zipkinJSONSpan
 	err := json.NewDecoder(r).Decode(&jsonSpans)
@@ -25,7 +27,7 @@ type zipkinJSONSpan struct {
 	ID                string              `json:"id"`
 	ParentID          string              `json:"parentId,omitempty"`
 	Annotations       []*Annotation       `json:"annotations"`
-	BinaryAnnotations []*BinaryAnnotation `json:"binaryAnnotations"`
+	BinaryAnnotations []*binaryAnnotation `json:"binaryAnnotations"`
 	Debug             bool                `json:"debug,omitempty"`
 	Timestamp         int64               `json:"timestamp,omitempty"`
 	Duration          int64               `json:"duration,omitempty"`
@@ -69,7 +71,7 @@ type Annotation struct {
 	Host      *Endpoint `json:"host,omitempty"`
 }
 
-type BinaryAnnotation struct {
+type binaryAnnotation struct {
 	Key      string    `json:"key"`
 	Value    string    `json:"value"` // TODO: are BinaryAnnotations really always strings in the Zipkin JSON API?
 	Endpoint *Endpoint `json:"host,omitempty"`

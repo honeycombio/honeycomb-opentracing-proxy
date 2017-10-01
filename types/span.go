@@ -2,6 +2,13 @@ package types
 
 import "time"
 
+// Span represents a Zipkin span in a format more useful for consumption in
+// Honeycomb.
+// - BinaryAnnotations are turned into a key: value map.
+// - Endpoint values in BinaryAnnotations are lifted into top-level
+//   HostIPv4/Port/ServiceName values on the span.
+// - Timestamp and Duration values are turned into time.Time and millisecond
+//   values, respectively.
 type Span struct {
 	TraceID           string                 `json:"traceId"`
 	Name              string                 `json:"name"`
@@ -17,6 +24,8 @@ type Span struct {
 	DurationMs        float64                `json:"duration,omitempty"`
 }
 
+// convertTimestamp turns a Zipkin timestamp (a Unix timestamp in microseconds)
+// into a time.Time value.
 func convertTimestamp(tsMicros int64) time.Time {
 	return time.Unix(tsMicros/1000000, (tsMicros%1000000)*1000).UTC()
 }

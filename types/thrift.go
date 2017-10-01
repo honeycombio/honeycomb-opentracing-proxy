@@ -74,7 +74,9 @@ func convertBinaryAnnotationValue(ba *zipkincore.BinaryAnnotation) interface{} {
 	return ba.Value
 }
 
-// from jaeger internals but not exported there
+// DecodeThrift reads a list of encoded thrift spans from an io.Reader, and
+// converts that list to a slice of Spans.
+// The implementation is based on jaeger internals, but not exported there.
 func DecodeThrift(r io.Reader) ([]*Span, error) {
 	body, err := ioutil.ReadAll(r)
 	if err != nil {

@@ -1,5 +1,8 @@
-Extremely proof-of-concept-level zipkin-to-Honeycomb forwarder. Speaks the
-zipkin V1 API: send your spans to `/api/v1/spans`.
+Zipkinproxy collects Zipkin span data and sends it to the Honeycomb API for
+you to explore.
+
+Zipkinproxy can also write span data to stdout for ease of local development,
+and can transparently forward span data to another Zipkin collector.
 
 Usage (subject to change):
 
@@ -15,11 +18,11 @@ zipkinproxy --downstream https://myzipkin.example.com:9411
 ```
 
 
-Next steps:
+This is a work in progress. Next steps:
 
 - support sending spans to different datasets based on some criterion?
 - more tests
 - retry logic
 - do something useful with annotations
 - do something better with special-case binaryAnnotations
-
+- support the Zipkin v2 API?
