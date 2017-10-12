@@ -138,7 +138,7 @@ func (m *Mirror) runWorker() {
 		}
 		defer resp.Body.Close()
 		if resp.StatusCode != http.StatusAccepted {
-			responseBody, _ := ioutil.ReadAll(&io.LimitedReader{resp.Body, 1024})
+			responseBody, _ := ioutil.ReadAll(&io.LimitedReader{R: resp.Body, N: 1024})
 			logrus.WithField("status", resp.Status).
 				WithField("response", string(responseBody)).
 				Info("Error response sending payload downstream")
