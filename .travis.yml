@@ -1,0 +1,17 @@
+language: go
+dist: trusty
+sudo: false
+
+services:
+ - docker
+
+script:
+ - go test ./...
+ - go vet ./...
+
+after_success:
+ - if [ "$TRAVIS_PULL_REQUEST" == "false" ] && [ "$TRAVIS_BRANCH" == "master" ]; then
+   docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD";
+   make push;
+   make push-head;
+   fi
