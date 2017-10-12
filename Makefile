@@ -1,5 +1,5 @@
 
-PKG := github.com/honeycombio/honeycomb-kubernetes-agent
+PKG := honeycombio/zipkinproxy
 VERSION := $(shell git describe --tags --always --dirty)
 
 DOTFILE_IMAGE = $(subst :,_,$(subst /,_,$(PKG))-$(VERSION))
@@ -21,8 +21,8 @@ push: .container-$(DOTFILE_IMAGE)
 
 # Publish container tagged with 'head'
 push-head: .container-$(DOTFILE_IMAGE)
-	#@docker tag $(PKG):$(VERSION) $(PKG):head
-	#@docker push $(PKG):head
+	@docker tag $(PKG):$(VERSION) $(PKG):head
+	@docker push $(PKG):head
 	@echo "pushed: $(PKG):head"
 
 clean:
