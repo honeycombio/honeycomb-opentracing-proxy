@@ -146,16 +146,17 @@ func TestMirroring(t *testing.T) {
 	mirror.Stop()
 
 	assert.Equal(len(m.payloads), 1)
-	assert.Equal(m.payloads[0], data)
+	assert.Equal(m.payloads[0].Body, data)
+	assert.Equal(m.payloads[0].ContentType, "application/x-thrift")
 }
 
 type mockDownstream struct {
 	server   *httptest.Server
-	payloads [][]byte
+	payloads []payload
 }
 
 func newMockDownstream() *mockDownstream {
-	var payloads [][]byte
+	var payloads []payload
 	mu := &mockDownstream{
 		payloads: payloads,
 	}
@@ -164,7 +165,7 @@ func newMockDownstream() *mockDownstream {
 		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			defer r.Body.Close()
 			data, _ := ioutil.ReadAll(r.Body)
-			mu.payloads = append(mu.payloads, data)
+			mu.payloads = append(mu.payloads, payload{ContentType: r.Header.Get("Content-Type"), Body: data})
 			w.WriteHeader(http.StatusAccepted)
 		}))
 	return mu

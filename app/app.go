@@ -37,15 +37,16 @@ func (a *App) handleSpans(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("error reading request"))
 	}
 
+	contentType := r.Header.Get("Content-Type")
+
 	if a.Mirror != nil {
-		err := a.Mirror.Send(data)
+		err := a.Mirror.Send(payload{ContentType: contentType, Body: data})
 		if err != nil {
 			logrus.WithError(err).Info("Error mirroring data")
 		}
 	}
 
 	var spans []*types.Span
-	contentType := r.Header.Get("Content-Type")
 	switch contentType {
 	case "application/json":
 		spans, err = types.DecodeJSON(bytes.NewReader(data))
@@ -89,12 +90,17 @@ func (a *App) Stop() error {
 	return a.server.Shutdown(ctx)
 }
 
+type payload struct {
+	ContentType string
+	Body        []byte
+}
+
 type Mirror struct {
 	DownstreamURL  *url.URL
 	BufSize        int
 	MaxConcurrency int
 
-	payloads chan []byte
+	payloads chan payload
 	stopped  bool
 	wg       sync.WaitGroup
 }
@@ -106,7 +112,7 @@ func (m *Mirror) Start() error {
 	if m.BufSize == 0 {
 		m.BufSize = 4096
 	}
-	m.payloads = make(chan []byte, m.BufSize)
+	m.payloads = make(chan payload, m.BufSize)
 	for i := 0; i < m.MaxConcurrency; i++ {
 		m.wg.Add(1)
 		go m.runWorker()
@@ -126,7 +132,8 @@ func (m *Mirror) Stop() error {
 
 func (m *Mirror) runWorker() {
 	for p := range m.payloads {
-		r, err := http.NewRequest("POST", m.DownstreamURL.String(), bytes.NewReader(p))
+		r, err := http.NewRequest("POST", m.DownstreamURL.String(), bytes.NewReader(p.Body))
+		r.Header.Set("Content-Type", p.ContentType)
 		if err != nil {
 			logrus.WithError(err).Info("Error building downstream request")
 			return
@@ -147,12 +154,12 @@ func (m *Mirror) runWorker() {
 	m.wg.Done()
 }
 
-func (m *Mirror) Send(data []byte) error {
+func (m *Mirror) Send(p payload) error {
 	if m.stopped {
 		return errors.New("sink stopped")
 	}
 	select {
-	case m.payloads <- data:
+	case m.payloads <- p:
 		return nil
 	default:
 		return errors.New("sink full")
