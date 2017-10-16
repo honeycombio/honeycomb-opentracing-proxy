@@ -44,6 +44,7 @@ func main() {
 		&sinks.HoneycombSink{
 			Writekey: options.Writekey,
 			Dataset:  options.Dataset,
+			APIHost:  options.APIHost,
 		},
 	)
 	if options.Debug {

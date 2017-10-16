@@ -13,6 +13,7 @@ import (
 type HoneycombSink struct {
 	Writekey string
 	Dataset  string
+	APIHost  string
 	// TODO use builder to allow for multiple datasets?
 }
 
@@ -20,6 +21,7 @@ func (hs *HoneycombSink) Start() error {
 	libhoney.Init(libhoney.Config{
 		WriteKey: hs.Writekey,
 		Dataset:  hs.Dataset,
+		APIHost:  hs.APIHost,
 	})
 
 	go func() {
