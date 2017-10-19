@@ -40,6 +40,7 @@ func (hs *HoneycombSink) Stop() error {
 func (hs *HoneycombSink) Send(spans []*types.Span) error {
 	for _, s := range spans {
 		ev := libhoney.NewEvent()
+		ev.Timestamp = s.Timestamp
 		ev.AddField("traceId", s.TraceID)
 		ev.AddField("name", s.Name)
 		ev.AddField("id", s.ID)
@@ -47,8 +48,6 @@ func (hs *HoneycombSink) Send(spans []*types.Span) error {
 		ev.AddField("serviceName", s.ServiceName)
 		ev.AddField("hostIPv4", s.HostIPv4)
 		ev.AddField("port", s.Port)
-
-		ev.AddField("timestamp", s.Timestamp)
 		ev.AddField("debug", s.Debug)
 		ev.AddField("durationMs", s.DurationMs)
 		for k, v := range s.BinaryAnnotations {
