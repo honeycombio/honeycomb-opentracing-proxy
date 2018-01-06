@@ -9,8 +9,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"math/rand"
 	"net/http"
+	"net/url"
+	"path"
 	"reflect"
 	"sort"
 	"strings"
@@ -27,7 +30,7 @@ func init() {
 const (
 	defaultSampleRate = 1
 	defaultAPIHost    = "https://api.honeycomb.io/"
-	version           = "1.4.0"
+	version           = "1.5.0"
 
 	// DefaultMaxBatchSize how many events to collect in a batch
 	DefaultMaxBatchSize = 50
@@ -125,6 +128,49 @@ type Config struct {
 	// Honeycomb servers. Intended for use in tests in order to assert on
 	// expected behavior.
 	Transport http.RoundTripper
+}
+
+// VerifyWriteKey calls out to the Honeycomb API to validate the write key, so
+// we can exit immediately if desired instead of happily sending events that
+// are all rejected.
+func VerifyWriteKey(config Config) (string, error) {
+	if config.WriteKey == "" {
+		return "", errors.New("Write key is empty")
+	}
+	if config.APIHost == "" {
+		config.APIHost = defaultAPIHost
+	}
+	u, err := url.Parse(config.APIHost)
+	if err != nil {
+		return "", fmt.Errorf("Error parsing API URL: %s", err)
+	}
+	u.Path = path.Join(u.Path, "1", "team_slug")
+	req, err := http.NewRequest("GET", u.String(), nil)
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("User-Agent", UserAgentAddition)
+	req.Header.Add("X-Honeycomb-Team", config.WriteKey)
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusUnauthorized {
+		return "", errors.New("Write key provided is invalid")
+	}
+	body, _ := ioutil.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf(`Abnormal non-200 response verifying Honeycomb write key: %d
+Response body: %s`, resp.StatusCode, string(body))
+	}
+	ret := map[string]string{}
+	if err := json.Unmarshal(body, &ret); err != nil {
+		return "", err
+	}
+
+	return ret["team_slug"], nil
 }
 
 // Event is used to hold data that can be sent to Honeycomb. It can also
@@ -429,7 +475,12 @@ func (f *fieldHolder) addStruct(s interface{}) error {
 			}
 			// slice off options
 			if idx := strings.Index(fTag, ","); idx != -1 {
+				options := fTag[idx:]
 				fTag = fTag[:idx]
+				if strings.Contains(options, "omitempty") && isEmptyValue(sVal.Field(i)) {
+					// skip empty values if omitempty option is set
+					continue
+				}
 			}
 			fName = fTag
 		} else {
@@ -654,4 +705,23 @@ func (b *Builder) Clone() *Builder {
 		newB.dynFields = append(newB.dynFields, dynFd)
 	}
 	return newB
+}
+
+// Helper lifted from Go stdlib encoding/json
+func isEmptyValue(v reflect.Value) bool {
+	switch v.Kind() {
+	case reflect.Array, reflect.Map, reflect.Slice, reflect.String:
+		return v.Len() == 0
+	case reflect.Bool:
+		return !v.Bool()
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return v.Int() == 0
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		return v.Uint() == 0
+	case reflect.Float32, reflect.Float64:
+		return v.Float() == 0
+	case reflect.Interface, reflect.Ptr:
+		return v.IsNil()
+	}
+	return false
 }

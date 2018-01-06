@@ -1,5 +1,5 @@
-hash: d73c43a6feb318af981d463d5e5d1dac79474d4c4b5c98e981bf2e57ed901192
-updated: 2017-12-11T15:37:33.428044364-08:00
+hash: 4f4a7466376c1bd4d9b7be4775b36660394a3b16ae67a15e5c120f0e643c6c4f
+updated: 2018-01-05T16:17:56.349053318-08:00
 imports:
 - name: github.com/apache/thrift
   version: b2a4d4ae21c789b689dd162deb819665567f481c
@@ -8,21 +8,21 @@ imports:
 - name: github.com/facebookgo/clock
   version: 600d898af40aa09a7a93ecb9265d87b0504b6f03
 - name: github.com/facebookgo/inject
-  version: cc1aa653e50f6a9893bcaef89e673e5b24e1e97b
+  version: d5029152fecb2a8e68f7f8eb3c6391fc8ee70496
 - name: github.com/facebookgo/limitgroup
   version: 6abd8d71ec01451d7f1929eacaa263bbe2935d05
 - name: github.com/facebookgo/muster
   version: fd3d7953fd52354a74b9f6b3d70d0c9650c4ec2a
 - name: github.com/facebookgo/startstop
-  version: bc158412526d4d11f91db720786fc07131b6fb4d
+  version: 69abd424c676eb577bb9bb917a98289d7d752b15
 - name: github.com/facebookgo/structtag
   version: 217e25fb96916cc60332e399c9aa63f5c422ceed
 - name: github.com/honeycombio/libhoney-go
-  version: fa150b33843ed6f8596f87a708f96b066191fcfd
+  version: 968448181562005431321318a11ed0141feea80e
 - name: github.com/jessevdk/go-flags
   version: 96dc06278ce32a0e9d957d590bb987c81ee66407
 - name: github.com/opentracing/opentracing-go
-  version: 1361b9cd60be79c4c3a7fa9841b3c132e40066a7
+  version: 1949ddbfd147afd4d964a9f00b24eb291e0e7c38
   subpackages:
   - ext
   - log
@@ -44,18 +44,17 @@ imports:
   - trand
   - typed
 - name: golang.org/x/crypto
-  version: 94eea52f7b742c7cbe0b03b22f0c4c8631ece122
+  version: 9e7f5dc375abeb9619ea3c5c58502c428f457aa2
   subpackages:
   - ssh/terminal
 - name: golang.org/x/net
-  version: dc871a5d77e227f5bbf6545176ef3eeebf87e76e
+  version: 42fe2e1c20de1054d3d30f82cc9fb5b41e2e3767
   subpackages:
   - context
 - name: golang.org/x/sys
   version: 53aa286056ef226755cd898109dbcdaba8ac0b81
   subpackages:
   - unix
-  - windows
 - name: gopkg.in/alexcesaro/statsd.v2
   version: 7fea3f0d2fab1ad973e641e51dba45443a311a90
 testImports:

@@ -40,17 +40,14 @@ type Logger interface {
 	Errorf(f string, args ...interface{})
 }
 
-// TryStart will start the graph, in the right order. It will call
-// Start or Open. It returns the list of objects that have been
-// successfully started. This can be used to stop only the
-// dependencies that have been correctly started.
-func TryStart(objects []*inject.Object, log Logger) ([]*inject.Object, error) {
+// Start the graph, in the right order. Start will call Start or Open if an
+// object satisfies the associated interface.
+func Start(objects []*inject.Object, log Logger) error {
 	levels, err := levels(objects)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	var started []*inject.Object
 	for i := len(levels) - 1; i >= 0; i-- {
 		level := levels[i]
 		for _, o := range level {
@@ -59,7 +56,7 @@ func TryStart(objects []*inject.Object, log Logger) ([]*inject.Object, error) {
 					log.Debugf("opening %s", o)
 				}
 				if err := openerO.Open(); err != nil {
-					return started, err
+					return err
 				}
 			}
 			if starterO, ok := o.Value.(Starter); ok {
@@ -67,20 +64,12 @@ func TryStart(objects []*inject.Object, log Logger) ([]*inject.Object, error) {
 					log.Debugf("starting %s", o)
 				}
 				if err := starterO.Start(); err != nil {
-					return started, err
+					return err
 				}
 			}
-			started = append(started, o)
 		}
 	}
-	return started, nil
-}
-
-// Start the graph, in the right order. Start will call Start or Open if an
-// object satisfies the associated interface.
-func Start(objects []*inject.Object, log Logger) error {
-	_, err := TryStart(objects, log)
-	return err
+	return nil
 }
 
 // Stop the graph, in the right order. Stop will call Stop or Close if an
