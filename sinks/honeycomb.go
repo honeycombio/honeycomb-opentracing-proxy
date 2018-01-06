@@ -41,15 +41,7 @@ func (hs *HoneycombSink) Send(spans []*types.Span) error {
 	for _, s := range spans {
 		ev := libhoney.NewEvent()
 		ev.Timestamp = s.Timestamp
-		ev.AddField("traceId", s.TraceID)
-		ev.AddField("name", s.Name)
-		ev.AddField("id", s.ID)
-		ev.AddField("parentId", s.ParentID)
-		ev.AddField("serviceName", s.ServiceName)
-		ev.AddField("hostIPv4", s.HostIPv4)
-		ev.AddField("port", s.Port)
-		ev.AddField("debug", s.Debug)
-		ev.AddField("durationMs", s.DurationMs)
+		ev.Add(s.CoreSpanMetadata)
 		for k, v := range s.BinaryAnnotations {
 			ev.AddField(fmt.Sprintf("%s.%s", s.Name, k), v)
 		}

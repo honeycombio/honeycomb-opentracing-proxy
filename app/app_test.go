@@ -10,16 +10,20 @@ import (
 	"testing"
 	"time"
 
+	libhoney "github.com/honeycombio/libhoney-go"
+	"github.com/honeycombio/zipkinproxy/sinks"
 	"github.com/honeycombio/zipkinproxy/types"
 	"github.com/stretchr/testify/assert"
 )
 
 type MockSink struct {
-	spans []*types.Span
+	spans []types.Span
 }
 
 func (ms *MockSink) Send(spans []*types.Span) error {
-	ms.spans = append(ms.spans, spans...)
+	for _, span := range spans {
+		ms.spans = append(ms.spans, *span)
+	}
 	return nil
 }
 
@@ -41,53 +45,62 @@ func TestThriftDecoding(t *testing.T) {
 	w := httptest.NewRecorder()
 	a.handleSpans(w, r)
 	assert.Equal(w.Code, http.StatusAccepted)
-	expectedSpans := []*types.Span{
-		&types.Span{
-			TraceID:  "350565b6a90d4c8c",
-			Name:     "/api.RetrieverService/Fetch",
-			ID:       "3ba1d9a5451f81c4",
-			ParentID: "350565b6a90d4c8c",
+	expectedSpans := []types.Span{
+		types.Span{
+			CoreSpanMetadata: types.CoreSpanMetadata{
+				TraceID:    "350565b6a90d4c8c",
+				Name:       "/api.RetrieverService/Fetch",
+				ID:         "3ba1d9a5451f81c4",
+				ParentID:   "350565b6a90d4c8c",
+				DurationMs: 2.155,
+			},
 			BinaryAnnotations: map[string]interface{}{
 				"component": "gRPC",
 			},
-			Timestamp:  time.Date(2017, 9, 28, 20, 15, 17, 286440000, time.UTC),
-			DurationMs: 2.155,
+			Timestamp: time.Date(2017, 9, 28, 20, 15, 17, 286440000, time.UTC),
 			// TODO where's the endpoint data here?
 		},
-		&types.Span{
-			TraceID:     "350565b6a90d4c8c",
-			Name:        "persist",
-			ID:          "34472e70cb669b31",
-			ParentID:    "350565b6a90d4c8c",
-			ServiceName: "poodle",
-			HostIPv4:    "10.129.211.111",
+		types.Span{
+			CoreSpanMetadata: types.CoreSpanMetadata{
+				TraceID:     "350565b6a90d4c8c",
+				Name:        "persist",
+				ID:          "34472e70cb669b31",
+				ParentID:    "350565b6a90d4c8c",
+				ServiceName: "poodle",
+				HostIPv4:    "10.129.211.111",
+				DurationMs:  0.192,
+			},
 			BinaryAnnotations: map[string]interface{}{
 				"lc":             "poodle",
 				"responseLength": "136", // TODO verify :/
 			},
-			Timestamp:  time.Date(2017, 9, 28, 20, 15, 17, 288651000, time.UTC),
-			DurationMs: 0.192,
+			Timestamp: time.Date(2017, 9, 28, 20, 15, 17, 288651000, time.UTC),
 		},
-		&types.Span{
-			TraceID:     "350565b6a90d4c8c",
-			Name:        "markAsDone",
-			ID:          "2eb1b7009815c803",
-			ParentID:    "350565b6a90d4c8c",
-			ServiceName: "poodle",
-			HostIPv4:    "10.129.211.111",
+		types.Span{
+			CoreSpanMetadata: types.CoreSpanMetadata{
+				TraceID:     "350565b6a90d4c8c",
+				Name:        "markAsDone",
+				ID:          "2eb1b7009815c803",
+				ParentID:    "350565b6a90d4c8c",
+				ServiceName: "poodle",
+				HostIPv4:    "10.129.211.111",
+				DurationMs:  5.134,
+			},
 			BinaryAnnotations: map[string]interface{}{
 				"lc": "poodle",
 			},
-			Timestamp:  time.Date(2017, 9, 28, 20, 15, 17, 288847000, time.UTC),
-			DurationMs: 5.134,
+			Timestamp: time.Date(2017, 9, 28, 20, 15, 17, 288847000, time.UTC),
 		},
-		&types.Span{
-			TraceID:     "350565b6a90d4c8c",
-			Name:        "executeQuery",
-			ID:          "350565b6a90d4c8c",
-			ParentID:    "",
-			ServiceName: "poodle",
-			HostIPv4:    "10.129.211.111",
+		types.Span{
+			CoreSpanMetadata: types.CoreSpanMetadata{
+				TraceID:     "350565b6a90d4c8c",
+				Name:        "executeQuery",
+				ID:          "350565b6a90d4c8c",
+				ParentID:    "",
+				ServiceName: "poodle",
+				HostIPv4:    "10.129.211.111",
+				DurationMs:  9.98,
+			},
 			BinaryAnnotations: map[string]interface{}{
 				"lc":             "poodle",
 				"dataset_id":     "90",
@@ -101,8 +114,7 @@ func TestThriftDecoding(t *testing.T) {
 				"team_id":        "12",
 				"user_id":        "15",
 			},
-			Timestamp:  time.Date(2017, 9, 28, 20, 15, 17, 284010000, time.UTC),
-			DurationMs: 9.98,
+			Timestamp: time.Date(2017, 9, 28, 20, 15, 17, 284010000, time.UTC),
 		},
 	}
 	assert.Equal(ms.spans[:4], expectedSpans)
@@ -148,6 +160,63 @@ func TestMirroring(t *testing.T) {
 	assert.Equal(len(m.payloads), 1)
 	assert.Equal(m.payloads[0].Body, data)
 	assert.Equal(m.payloads[0].ContentType, "application/x-thrift")
+}
+
+func TestHoneycombOutput(t *testing.T) {
+	mockHoneycomb := &libhoney.MockOutput{}
+	assert := assert.New(t)
+	libhoney.Init(libhoney.Config{
+		WriteKey: "test",
+		Dataset:  "test",
+		Output:   mockHoneycomb,
+	})
+	a := &App{Sink: &sinks.HoneycombSink{}}
+
+	jsonPayload := `[{
+			"traceId":     "350565b6a90d4c8c",
+			"name":        "persist",
+			"id":          "34472e70cb669b31",
+			"parentId":    "",
+			"binaryAnnotations": [
+				{
+					"key": "lc",
+					"value": "poodle",
+					"host": {
+						"ipv4": "10.129.211.111",
+						"serviceName": "poodle"
+					}
+				},
+				{
+					"key": "responseLength",
+					"value": "136",
+					"host": {
+						"ipv4": "10.129.211.111",
+						"serviceName": "poodle"
+					}
+				}
+			],
+			"timestamp":  1506629747288651,
+			"duration": 192
+		}]`
+
+	r := httptest.NewRequest("POST", "/api/v1/spans",
+		bytes.NewReader([]byte(jsonPayload)))
+	r.Header.Add("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	a.handleSpans(w, r)
+	assert.Equal(w.Code, http.StatusAccepted)
+	assert.Equal(len(mockHoneycomb.Events()), 1)
+	assert.Equal(mockHoneycomb.Events()[0].Fields(),
+		map[string]interface{}{
+			"traceId":                "350565b6a90d4c8c",
+			"name":                   "persist",
+			"id":                     "34472e70cb669b31",
+			"serviceName":            "poodle",
+			"hostIPv4":               "10.129.211.111",
+			"persist.lc":             "poodle",
+			"persist.responseLength": "136",
+			"durationMs":             0.192,
+		})
 }
 
 type mockDownstream struct {

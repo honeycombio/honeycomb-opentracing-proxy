@@ -35,13 +35,15 @@ type zipkinJSONSpan struct {
 
 func convertJSONSpan(zs zipkinJSONSpan) *Span {
 	s := &Span{
-		TraceID:           zs.TraceID,
-		Name:              zs.Name,
-		ID:                zs.ID,
-		ParentID:          zs.ParentID,
-		Debug:             zs.Debug,
+		CoreSpanMetadata: CoreSpanMetadata{
+			TraceID:    zs.TraceID,
+			Name:       zs.Name,
+			ID:         zs.ID,
+			ParentID:   zs.ParentID,
+			Debug:      zs.Debug,
+			DurationMs: float64(zs.Duration) / 1000.,
+		},
 		Timestamp:         convertTimestamp(zs.Timestamp),
-		DurationMs:        float64(zs.Duration) / 1000.,
 		BinaryAnnotations: make(map[string]interface{}, len(zs.BinaryAnnotations)),
 	}
 

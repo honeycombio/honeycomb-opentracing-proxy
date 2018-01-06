@@ -14,10 +14,12 @@ import (
 
 func convertThriftSpan(ts *zipkincore.Span) *Span {
 	s := &Span{
-		TraceID:           convertID(ts.TraceID),
-		Name:              ts.Name,
-		ID:                convertID(ts.ID),
-		Debug:             ts.Debug,
+		CoreSpanMetadata: CoreSpanMetadata{
+			TraceID: convertID(ts.TraceID),
+			Name:    ts.Name,
+			ID:      convertID(ts.ID),
+			Debug:   ts.Debug,
+		},
 		BinaryAnnotations: make(map[string]interface{}, len(ts.BinaryAnnotations)),
 	}
 	if ts.ParentID != nil {
