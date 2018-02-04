@@ -162,6 +162,35 @@ func TestMirroring(t *testing.T) {
 	assert.Equal(m.payloads[0].ContentType, "application/x-thrift")
 }
 
+// Test that we still forward span data even when the "mirror" (e.g., a real
+// Zipkin installation that should also receive the Zipkin data) is
+// unavailable.
+func TestMirroringWhenDestinationUnavailable(t *testing.T) {
+	assert := assert.New(t)
+	url, _ := url.Parse("http://localhost:9")
+	mirror := &Mirror{DownstreamURL: url}
+	mirror.Start()
+	defer mirror.Stop()
+	a := &App{
+		Sink:   &MockSink{},
+		Mirror: mirror,
+	}
+	a.Start()
+	defer a.Stop()
+
+	testFile, err := os.Open("testdata/payload_0.thrift")
+	assert.NoError(err)
+
+	data, err := ioutil.ReadAll(testFile)
+	assert.NoError(err)
+	r := httptest.NewRequest("POST", "/api/v1/spans", bytes.NewReader(data))
+	r.Header.Add("Content-Type", "application/x-thrift")
+	w := httptest.NewRecorder()
+	a.handleSpans(w, r)
+	assert.Equal(w.Code, http.StatusAccepted)
+
+}
+
 func TestHoneycombOutput(t *testing.T) {
 	mockHoneycomb := &libhoney.MockOutput{}
 	assert := assert.New(t)

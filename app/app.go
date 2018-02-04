@@ -142,6 +142,7 @@ func (m *Mirror) runWorker() {
 		resp, err := client.Do(r)
 		if err != nil {
 			logrus.WithError(err).Info("Error sending payload downstream")
+			continue
 		}
 		defer resp.Body.Close()
 		if resp.StatusCode != http.StatusAccepted {
