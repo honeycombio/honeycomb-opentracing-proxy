@@ -208,14 +208,14 @@ func TestHoneycombOutput(t *testing.T) {
 	assert.Equal(len(mockHoneycomb.Events()), 1)
 	assert.Equal(mockHoneycomb.Events()[0].Fields(),
 		map[string]interface{}{
-			"traceId":                "350565b6a90d4c8c",
-			"name":                   "persist",
-			"id":                     "34472e70cb669b31",
-			"serviceName":            "poodle",
-			"hostIPv4":               "10.129.211.111",
-			"persist.lc":             "poodle",
-			"persist.responseLength": "136",
-			"durationMs":             0.192,
+			"traceId":        "350565b6a90d4c8c",
+			"name":           "persist",
+			"id":             "34472e70cb669b31",
+			"serviceName":    "poodle",
+			"hostIPv4":       "10.129.211.111",
+			"lc":             "poodle",
+			"responseLength": "136",
+			"durationMs":     0.192,
 		})
 }
 

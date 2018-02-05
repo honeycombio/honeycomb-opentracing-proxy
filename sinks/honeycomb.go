@@ -43,7 +43,7 @@ func (hs *HoneycombSink) Send(spans []*types.Span) error {
 		ev.Timestamp = s.Timestamp
 		ev.Add(s.CoreSpanMetadata)
 		for k, v := range s.BinaryAnnotations {
-			ev.AddField(fmt.Sprintf("%s.%s", s.Name, k), v)
+			ev.AddField(k, v)
 		}
 		err := ev.Send()
 		if err != nil {
