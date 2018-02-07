@@ -12,8 +12,8 @@ import (
 	"time"
 
 	"github.com/Sirupsen/logrus"
-	"github.com/honeycombio/zipkinproxy/sinks"
-	"github.com/honeycombio/zipkinproxy/types"
+	"github.com/honeycombio/honeycomb-opentracing-proxy/sinks"
+	"github.com/honeycombio/honeycomb-opentracing-proxy/types"
 )
 
 type App struct {

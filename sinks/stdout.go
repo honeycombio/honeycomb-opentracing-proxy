@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/Sirupsen/logrus"
-	"github.com/honeycombio/zipkinproxy/types"
+	"github.com/honeycombio/honeycomb-opentracing-proxy/types"
 )
 
 // StdoutSink implements the Sink interface. It writes span data to stdout.

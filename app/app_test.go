@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/honeycombio/honeycomb-opentracing-proxy/sinks"
+	"github.com/honeycombio/honeycomb-opentracing-proxy/types"
 	libhoney "github.com/honeycombio/libhoney-go"
-	"github.com/honeycombio/zipkinproxy/sinks"
-	"github.com/honeycombio/zipkinproxy/types"
 	"github.com/stretchr/testify/assert"
 )
 

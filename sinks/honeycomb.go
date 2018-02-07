@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/honeycombio/honeycomb-opentracing-proxy/types"
 	libhoney "github.com/honeycombio/libhoney-go"
-	"github.com/honeycombio/zipkinproxy/types"
 )
 
 // HoneycombSink implements the Sink interface. It sends spans to the Honeycomb

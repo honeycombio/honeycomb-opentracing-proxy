@@ -9,8 +9,8 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/honeycombio/zipkinproxy/app"
-	"github.com/honeycombio/zipkinproxy/sinks"
+	"github.com/honeycombio/honeycomb-opentracing-proxy/app"
+	"github.com/honeycombio/honeycomb-opentracing-proxy/sinks"
 	flag "github.com/jessevdk/go-flags"
 )
 
