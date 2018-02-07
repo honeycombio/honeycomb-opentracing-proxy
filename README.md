@@ -1,20 +1,20 @@
-Zipkinproxy collects Zipkin span data and sends it to the Honeycomb API for
-you to explore.
+`honeycomb-opentracing-proxy` is a drop-in compatible replacement for Zipkin.
+If your services are instrumented with OpenTracing and emit span data using
+Zipkin's wire format, then `honeycomb-opentracing-proxy` can receive that data
+and forward it to the [Honeycomb](https://honeycomb.io) API. Using Honeycomb,
+you can explore single traces, and run queries over aggregated trace data.
 
-Zipkinproxy can also write span data to stdout for ease of local development,
-and can transparently forward span data to another Zipkin collector.
-
-Usage (subject to change):
+## Usage
 
 ```
 # Forward spans to a Honeycomb dataset $DATASET, using writekey $WRITEKEY
-zipkinproxy -d $DATASET -k $WRITEKEY
+honeycomb-opentracing-proxy -d $DATASET -k $WRITEKEY
 
 # Write spans to stdout
-zipkinproxy --debug
+honeycomb-opentracing-proxy --debug
 
 # Forward spans to a downstream "real" Zipkin collector
-zipkinproxy --downstream https://myzipkin.example.com:9411
+honeycomb-opentracing-proxy --downstream https://myzipkin.example.com:9411
 ```
 
 

@@ -2,7 +2,7 @@
 apiVersion: apps/v1beta1
 kind: Deployment
 metadata:
-  name: zipkinproxy
+  name: honeycomb-opentracing-proxy
   # Putting this in the istio-system namespace makes it work with Istio (for
   # Istio 0.2)
   namespace: istio-system
@@ -11,16 +11,16 @@ spec:
   template:
     metadata:
       labels:
-        app: zipkinproxy
+        app: honeycomb-opentracing-proxy
     spec:
       containers:
-      - name: zipkinproxy
-        image: honeycombio/zipkinproxy
+      - name: honeycomb-opentracing-proxy
+        image: honeycombio/honeycomb-opentracing-proxy
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 9411
         command:
-          - /go/bin/zipkinproxy
+          - /go/bin/honeycomb-opentracing-proxy
         args:
           - -d
           - zipkin-test
@@ -37,14 +37,15 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
+  # pretend to be zipkin for istio demo purposes
   name: zipkin
   labels:
     app: zipkin
   namespace: istio-system
 spec:
   ports:
-  - name: zipkinproxy
+  - name: honeycomb-opentracing-proxy
     port: 9411
     targetPort: 9411
   selector:
-    app: zipkinproxy
+    app: honeycomb-opentracing-proxy

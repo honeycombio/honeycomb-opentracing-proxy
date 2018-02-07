@@ -2,7 +2,7 @@ package sinks
 
 import (
 	"github.com/facebookgo/startstop"
-	"github.com/honeycombio/zipkinproxy/types"
+	"github.com/honeycombio/honeycomb-opentracing-proxy/types"
 )
 
 // Sink is the interface for doing something with Spans, e.g. sending them to

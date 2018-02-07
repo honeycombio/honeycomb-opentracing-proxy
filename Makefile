@@ -1,5 +1,5 @@
 
-PKG := honeycombio/zipkinproxy
+PKG := honeycombio/honeycomb-opentracing-proxy
 VERSION := $(shell git describe --tags --always --dirty)
 
 DOTFILE_IMAGE = $(subst :,_,$(subst /,_,$(PKG))-$(VERSION))

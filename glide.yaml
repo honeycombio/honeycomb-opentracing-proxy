@@ -1,4 +1,4 @@
-package: github.com/honeycombio/zipkinproxy
+package: github.com/honeycombio/honeycomb-opentracing-proxy
 import:
 - package: github.com/Sirupsen/logrus
   version: ~1.0.3
