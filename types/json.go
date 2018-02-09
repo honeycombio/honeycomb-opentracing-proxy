@@ -56,7 +56,7 @@ func convertJSONSpan(zs zipkinJSONSpan) *Span {
 			// https://github.com/openzipkin/zipkin/blob/master/zipkin/src/main/java/zipkin/Endpoint.java#L35
 			continue
 		}
-		s.BinaryAnnotations[ba.Key] = string(ba.Value)
+		s.BinaryAnnotations[ba.Key] = guessAnnotationType(ba.Value)
 		if endpoint := ba.Endpoint; endpoint != nil {
 			s.HostIPv4 = endpoint.Ipv4
 			s.ServiceName = endpoint.ServiceName
@@ -75,7 +75,7 @@ type Annotation struct {
 
 type binaryAnnotation struct {
 	Key      string    `json:"key"`
-	Value    string    `json:"value"` // TODO: are BinaryAnnotations really always strings in the Zipkin JSON API?
+	Value    string    `json:"value"`
 	Endpoint *Endpoint `json:"host,omitempty"`
 }
 

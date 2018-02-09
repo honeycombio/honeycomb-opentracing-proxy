@@ -72,7 +72,7 @@ func TestThriftDecoding(t *testing.T) {
 			},
 			BinaryAnnotations: map[string]interface{}{
 				"lc":             "poodle",
-				"responseLength": "136", // TODO verify :/
+				"responseLength": int64(136),
 			},
 			Timestamp: time.Date(2017, 9, 28, 20, 15, 17, 288651000, time.UTC),
 		},
@@ -103,16 +103,16 @@ func TestThriftDecoding(t *testing.T) {
 			},
 			BinaryAnnotations: map[string]interface{}{
 				"lc":             "poodle",
-				"dataset_id":     "90",
-				"hidden_reason":  "0",
+				"dataset_id":     int64(90),
+				"hidden_reason":  int64(0),
 				"hostname":       "sea-of-dreams",
 				"jaeger.version": "Go-2.8.0",
 				"query_hash":     "fca2835dced5d6fafb4eb9dd",
 				"query_run_pk":   "7AREu8scycJ",
 				"sampler.param":  true,
 				"sampler.type":   "const",
-				"team_id":        "12",
-				"user_id":        "15",
+				"team_id":        int64(12),
+				"user_id":        int64(15),
 			},
 			Timestamp: time.Date(2017, 9, 28, 20, 15, 17, 284010000, time.UTC),
 		},
@@ -243,7 +243,7 @@ func TestHoneycombOutput(t *testing.T) {
 			"serviceName":    "poodle",
 			"hostIPv4":       "10.129.211.111",
 			"lc":             "poodle",
-			"responseLength": "136",
+			"responseLength": int64(136),
 			"durationMs":     0.192,
 		})
 }
