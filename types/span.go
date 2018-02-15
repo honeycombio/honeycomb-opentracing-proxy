@@ -43,6 +43,8 @@ func convertTimestamp(tsMicros int64) time.Time {
 // guessAnnotationType takes a string value and turns it into a bool, int64 or
 // float64 value if possible. This is a workaround for the fact that Zipkin
 // BinaryAnnotation values are always transmitted as strings.
+// (See e.g. the Zipkin API spec here:
+// https://github.com/openzipkin/zipkin-api/blob/72280f3/zipkin-api.yaml#L235-L245)
 func guessAnnotationType(v string) interface{} {
 	if v == "false" {
 		return false
