@@ -48,17 +48,18 @@ func TestThriftDecoding(t *testing.T) {
 	expectedSpans := []types.Span{
 		types.Span{
 			CoreSpanMetadata: types.CoreSpanMetadata{
-				TraceID:    "350565b6a90d4c8c",
-				Name:       "/api.RetrieverService/Fetch",
-				ID:         "3ba1d9a5451f81c4",
-				ParentID:   "350565b6a90d4c8c",
-				DurationMs: 2.155,
+				TraceID:     "350565b6a90d4c8c",
+				Name:        "/api.RetrieverService/Fetch",
+				ID:          "3ba1d9a5451f81c4",
+				ParentID:    "350565b6a90d4c8c",
+				DurationMs:  2.155,
+				HostIPv4:    "10.129.211.111",
+				ServiceName: "poodle",
 			},
 			BinaryAnnotations: map[string]interface{}{
 				"component": "gRPC",
 			},
 			Timestamp: time.Date(2017, 9, 28, 20, 15, 17, 286440000, time.UTC),
-			// TODO where's the endpoint data here?
 		},
 		types.Span{
 			CoreSpanMetadata: types.CoreSpanMetadata{
