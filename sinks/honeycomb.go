@@ -8,13 +8,14 @@ import (
 	libhoney "github.com/honeycombio/libhoney-go"
 )
 
+const datasetKey = "honeycomb.dataset"
+
 // HoneycombSink implements the Sink interface. It sends spans to the Honeycomb
 // API.
 type HoneycombSink struct {
 	Writekey string
 	Dataset  string
 	APIHost  string
-	// TODO use builder to allow for multiple datasets?
 }
 
 func (hs *HoneycombSink) Start() error {
@@ -38,12 +39,24 @@ func (hs *HoneycombSink) Stop() error {
 }
 
 func (hs *HoneycombSink) Send(spans []*types.Span) error {
+spanLoop:
 	for _, s := range spans {
 		ev := libhoney.NewEvent()
 		ev.Timestamp = s.Timestamp
 		ev.Add(s.CoreSpanMetadata)
 		for k, v := range s.BinaryAnnotations {
-			ev.AddField(k, v)
+			if k == datasetKey {
+				// Let clients route spans to different datasets using the
+				// `honeycomb.dataset` tag.
+				ds, ok := v.(string)
+				if !ok {
+					logrus.WithField("honeycomb.dataset", v).Error("unexpected type for honeycomb.dataset tag value")
+					continue spanLoop
+				}
+				ev.Dataset = ds
+			} else {
+				ev.AddField(k, v)
+			}
 		}
 		err := ev.Send()
 		if err != nil {
