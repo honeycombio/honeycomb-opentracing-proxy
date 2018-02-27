@@ -25,5 +25,3 @@ to your spans. E.g.
 span, ctx := opentracing.StartSpan("myNewSpan")
 span.SetTag("honeycomb.dataset", "My Shiny Tracing Dataset")
 ```
-
-You'll probably want to use OpenTracing [baggage](https://github.com/opentracing/specification/blob/master/specification.md#set-a-baggage-item) to propagate the destination dataset to all descendant spans.
