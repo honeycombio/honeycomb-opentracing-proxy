@@ -202,31 +202,57 @@ func TestHoneycombOutput(t *testing.T) {
 	a := &App{Sink: &sinks.HoneycombSink{}}
 
 	jsonPayload := `[{
-			"traceId":     "350565b6a90d4c8c",
-			"name":        "persist",
-			"id":          "34472e70cb669b31",
-			"parentId":    "",
-			"binaryAnnotations": [
-				{
-					"key": "lc",
-					"value": "poodle",
-					"host": {
-						"ipv4": "10.129.211.111",
-						"serviceName": "poodle"
+				"traceId":     "350565b6a90d4c8c",
+				"name":        "persist",
+				"id":          "34472e70cb669b31",
+				"parentId":    "",
+				"binaryAnnotations": [
+					{
+						"key": "lc",
+						"value": "poodle",
+						"host": {
+							"ipv4": "10.129.211.111",
+							"serviceName": "poodle"
+						}
+					},
+					{
+						"key": "responseLength",
+						"value": "136",
+						"host": {
+							"ipv4": "10.129.211.111",
+							"serviceName": "poodle"
+						}
 					}
-				},
-				{
-					"key": "responseLength",
-					"value": "136",
-					"host": {
-						"ipv4": "10.129.211.111",
-						"serviceName": "poodle"
+				],
+				"timestamp":  1506629747288651,
+				"duration": 192
+			},
+			{
+				"traceId":     "8fe5ac327a4a4a88",
+				"name":        "persist",
+				"id":          "bb433fd338b2cecb",
+				"parentId":    "",
+				"binaryAnnotations": [
+					{
+						"key": "lc",
+						"value": "shepherd",
+						"host": {
+							"ipv4": "10.129.211.121",
+							"serviceName": "shepherd"
+						}
+					},
+					{
+						"key": "honeycomb.dataset",
+						"value": "write-traces",
+						"host": {
+							"ipv4": "10.129.211.121",
+							"serviceName": "shepherd"
+						}
 					}
-				}
-			],
-			"timestamp":  1506629747288651,
-			"duration": 192
-		}]`
+				],
+				"timestamp":  1506629747288651,
+				"duration": 222
+			}]`
 
 	r := httptest.NewRequest("POST", "/api/v1/spans",
 		bytes.NewReader([]byte(jsonPayload)))
@@ -234,7 +260,7 @@ func TestHoneycombOutput(t *testing.T) {
 	w := httptest.NewRecorder()
 	a.handleSpans(w, r)
 	assert.Equal(w.Code, http.StatusAccepted)
-	assert.Equal(len(mockHoneycomb.Events()), 1)
+	assert.Equal(len(mockHoneycomb.Events()), 2)
 	assert.Equal(mockHoneycomb.Events()[0].Fields(),
 		map[string]interface{}{
 			"traceId":        "350565b6a90d4c8c",
@@ -246,6 +272,8 @@ func TestHoneycombOutput(t *testing.T) {
 			"responseLength": int64(136),
 			"durationMs":     0.192,
 		})
+	assert.Equal(mockHoneycomb.Events()[0].Dataset, "test")
+	assert.Equal(mockHoneycomb.Events()[1].Dataset, "write-traces")
 }
 
 type mockDownstream struct {

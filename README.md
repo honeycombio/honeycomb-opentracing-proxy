@@ -17,12 +17,11 @@ honeycomb-opentracing-proxy --debug
 honeycomb-opentracing-proxy --downstream https://myzipkin.example.com:9411
 ```
 
+If you're instrumenting a complex codebase, and you'd like to send different
+types of traces to different Honeycomb datasets, add a `honeycomb.dataset` tag
+to your spans. E.g.
 
-This is a work in progress. Next steps:
-
-- support sending spans to different datasets based on some criterion?
-- more tests
-- retry logic
-- do something useful with annotations
-- do something better with special-case binaryAnnotations
-- support the Zipkin v2 API?
+```
+span, ctx := opentracing.StartSpan("myNewSpan")
+span.SetTag("honeycomb.dataset", "My Shiny Tracing Dataset")
+```
