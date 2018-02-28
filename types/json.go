@@ -8,7 +8,7 @@ import (
 // DecodeJSON reads an array of JSON-encoded spans from an io.Reader, and
 // converts that array to a slice of Spans.
 func DecodeJSON(r io.Reader) ([]*Span, error) {
-	var jsonSpans []zipkinJSONSpan
+	var jsonSpans []ZipkinJSONSpan
 	err := json.NewDecoder(r).Decode(&jsonSpans)
 	if err != nil {
 		return nil, err
@@ -21,7 +21,7 @@ func DecodeJSON(r io.Reader) ([]*Span, error) {
 	return spans, nil
 }
 
-type zipkinJSONSpan struct {
+type ZipkinJSONSpan struct {
 	TraceID           string              `json:"traceId"`
 	Name              string              `json:"name"`
 	ID                string              `json:"id"`
@@ -33,7 +33,7 @@ type zipkinJSONSpan struct {
 	Duration          int64               `json:"duration,omitempty"`
 }
 
-func convertJSONSpan(zs zipkinJSONSpan) *Span {
+func convertJSONSpan(zs ZipkinJSONSpan) *Span {
 	s := &Span{
 		CoreSpanMetadata: CoreSpanMetadata{
 			TraceID:    zs.TraceID,

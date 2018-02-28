@@ -2,6 +2,7 @@ package app
 
 import (
 	"bytes"
+	"encoding/json"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -38,12 +39,11 @@ func TestThriftDecoding(t *testing.T) {
 
 	a := &App{Sink: ms}
 
-	thriftPayload, err := os.Open("testdata/payload_0.thrift")
+	testFile, err := os.Open("testdata/payload_0.thrift")
 	assert.NoError(err)
-	r := httptest.NewRequest("POST", "/api/v1/spans", thriftPayload)
-	r.Header.Add("Content-Type", "application/x-thrift")
-	w := httptest.NewRecorder()
-	a.handleSpans(w, r)
+	data, err := ioutil.ReadAll(testFile)
+	assert.NoError(err)
+	w := handle(a, data, "application/x-thrift")
 	assert.Equal(w.Code, http.StatusAccepted)
 	expectedSpans := []types.Span{
 		types.Span{
@@ -149,10 +149,7 @@ func TestMirroring(t *testing.T) {
 
 	data, err := ioutil.ReadAll(testFile)
 	assert.NoError(err)
-	r := httptest.NewRequest("POST", "/api/v1/spans", bytes.NewReader(data))
-	r.Header.Add("Content-Type", "application/x-thrift")
-	w := httptest.NewRecorder()
-	a.handleSpans(w, r)
+	w := handle(a, data, "application/x-thrift")
 	assert.Equal(w.Code, http.StatusAccepted)
 
 	mirror.Stop()
@@ -183,10 +180,7 @@ func TestMirroringWhenDestinationUnavailable(t *testing.T) {
 
 	data, err := ioutil.ReadAll(testFile)
 	assert.NoError(err)
-	r := httptest.NewRequest("POST", "/api/v1/spans", bytes.NewReader(data))
-	r.Header.Add("Content-Type", "application/x-thrift")
-	w := httptest.NewRecorder()
-	a.handleSpans(w, r)
+	w := handle(a, data, "application/x-thrift")
 	assert.Equal(w.Code, http.StatusAccepted)
 
 }
@@ -226,41 +220,11 @@ func TestHoneycombOutput(t *testing.T) {
 				],
 				"timestamp":  1506629747288651,
 				"duration": 192
-			},
-			{
-				"traceId":     "8fe5ac327a4a4a88",
-				"name":        "persist",
-				"id":          "bb433fd338b2cecb",
-				"parentId":    "",
-				"binaryAnnotations": [
-					{
-						"key": "lc",
-						"value": "shepherd",
-						"host": {
-							"ipv4": "10.129.211.121",
-							"serviceName": "shepherd"
-						}
-					},
-					{
-						"key": "honeycomb.dataset",
-						"value": "write-traces",
-						"host": {
-							"ipv4": "10.129.211.121",
-							"serviceName": "shepherd"
-						}
-					}
-				],
-				"timestamp":  1506629747288651,
-				"duration": 222
 			}]`
 
-	r := httptest.NewRequest("POST", "/api/v1/spans",
-		bytes.NewReader([]byte(jsonPayload)))
-	r.Header.Add("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-	a.handleSpans(w, r)
+	w := handle(a, []byte(jsonPayload), "application/json")
 	assert.Equal(w.Code, http.StatusAccepted)
-	assert.Equal(len(mockHoneycomb.Events()), 2)
+	assert.Equal(len(mockHoneycomb.Events()), 1)
 	assert.Equal(mockHoneycomb.Events()[0].Fields(),
 		map[string]interface{}{
 			"traceId":        "350565b6a90d4c8c",
@@ -273,7 +237,73 @@ func TestHoneycombOutput(t *testing.T) {
 			"durationMs":     0.192,
 		})
 	assert.Equal(mockHoneycomb.Events()[0].Dataset, "test")
+}
+
+func TestHoneycombSpecialTagHandling(t *testing.T) {
+	assert := assert.New(t)
+	sampleSpanJSON := `{
+		"traceId":     "8fe5ac327a4a4a88",
+		"name":        "persist",
+		"id":          "bb433fd338b2cecb",
+		"parentId":    "",
+		"binaryAnnotations": [
+			{
+				"key": "lc",
+				"value": "shepherd",
+				"host": {
+					"ipv4": "10.129.211.121",
+					"serviceName": "shepherd"
+				}
+			},
+			{
+				"key": "honeycomb.dataset",
+				"value": "write-traces",
+				"host": {
+					"ipv4": "10.129.211.121",
+					"serviceName": "shepherd"
+				}
+			},
+			{
+				"key": "honeycomb.samplerate",
+				"value": "22",
+				"host": {
+					"ipv4": "10.129.211.121",
+					"serviceName": "shepherd"
+				}
+			}
+		],
+		"timestamp":  1506629747288651,
+		"duration": 222
+	}`
+
+	var sampleSpan types.ZipkinJSONSpan
+	err := json.Unmarshal([]byte(sampleSpanJSON), &sampleSpan)
+	assert.NoError(err)
+
+	mockHoneycomb := &libhoney.MockOutput{}
+	libhoney.Init(libhoney.Config{
+		WriteKey: "test",
+		Dataset:  "test",
+		Output:   mockHoneycomb,
+	})
+	a := &App{Sink: &sinks.HoneycombSink{}}
+
+	payload, err := json.Marshal([]types.ZipkinJSONSpan{sampleSpan})
+	assert.NoError(err)
+	w := handle(a, payload, "application/json")
+	assert.Equal(w.Code, http.StatusAccepted)
+	assert.Equal(mockHoneycomb.Events()[0].Dataset, "write-traces")
+	assert.Equal(mockHoneycomb.Events()[0].SampleRate, uint(22))
+
+	sampleSpan.BinaryAnnotations[2].Value = "-22"
+	payload, err = json.Marshal([]types.ZipkinJSONSpan{sampleSpan})
+	assert.NoError(err)
+	w = handle(a, payload, "application/json")
+	assert.Equal(w.Code, http.StatusAccepted)
+	libhoney.Close()
 	assert.Equal(mockHoneycomb.Events()[1].Dataset, "write-traces")
+	assert.Equal(mockHoneycomb.Events()[1].SampleRate, uint(1))
+
 }
 
 type mockDownstream struct {
@@ -295,4 +325,13 @@ func newMockDownstream() *mockDownstream {
 			w.WriteHeader(http.StatusAccepted)
 		}))
 	return mu
+}
+
+func handle(a *App, payload []byte, contentType string) *httptest.ResponseRecorder {
+	r := httptest.NewRequest("POST", "/api/v1/spans",
+		bytes.NewReader(payload))
+	r.Header.Add("Content-Type", contentType)
+	w := httptest.NewRecorder()
+	a.handleSpans(w, r)
+	return w
 }
