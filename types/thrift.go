@@ -34,20 +34,36 @@ func convertThriftSpan(ts *zipkincore.Span) *Span {
 		s.Timestamp = convertTimestamp(*ts.Timestamp)
 	}
 
+	var endpoint *zipkincore.Endpoint
 	for _, ba := range ts.BinaryAnnotations {
-		if ba.Key == "cs" || ba.Key == "sr" {
-			// Special case, skip this for now
-			// https://github.com/openzipkin/zipkin/blob/master/zipkin/src/main/java/zipkin/Endpoint.java#L35
+		if ba.Key == "ca" || ba.Key == "sa" {
+			// BinaryAnnotations with key "ca" (client addr) or "sa" (server addr)
+			// are special: the endpoint value for those is the address of the
+			// *remote* source or destination of an RPC, rather than the local
+			// hostname. See
+			// https://github.com/openzipkin/zipkin/blob/c7b341b9b421e7a57c/zipkin/src/main/java/zipkin/Endpoint.java#L35
+			// So for those, we don't want to lift the endpoint into the span's
+			// own hostIPv4/ServiceName/etc. fields. Simply skip those for now.
 			continue
 		}
 		s.BinaryAnnotations[ba.Key] = convertBinaryAnnotationValue(ba)
-		if endpoint := ba.Host; endpoint != nil {
-			s.HostIPv4 = convertIPv4(endpoint.Ipv4)
-			s.ServiceName = endpoint.ServiceName
-			s.Port = int(endpoint.Port)
+		if ba.Host != nil {
+			endpoint = ba.Host
 		}
 	}
-	// TODO: do something with annotations
+
+	for _, a := range ts.Annotations {
+		// TODO: do more with annotations (i.e., point-in-time logs within a span)
+		// besides extracting host info.
+		if a.Host != nil {
+			endpoint = a.Host
+		}
+	}
+	if endpoint != nil {
+		s.HostIPv4 = convertIPv4(endpoint.Ipv4)
+		s.ServiceName = endpoint.ServiceName
+		s.Port = int(endpoint.Port)
+	}
 	return s
 }
 
