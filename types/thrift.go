@@ -41,7 +41,7 @@ func convertThriftSpan(ts *zipkincore.Span) *Span {
 			// are special: the endpoint value for those is the address of the
 			// *remote* source or destination of an RPC, rather than the local
 			// hostname. See
-			// https://github.com/openzipkin/zipkin/blob/master/zipkin/src/main/java/zipkin/Endpoint.java#L35
+			// https://github.com/openzipkin/zipkin/blob/c7b341b9b421e7a57c/zipkin/src/main/java/zipkin/Endpoint.java#L35
 			// So for those, we don't want to lift the endpoint into the span's
 			// own hostIPv4/ServiceName/etc. fields. Simply skip those for now.
 			continue
