@@ -9,6 +9,7 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/Sirupsen/logrus"
 	"github.com/honeycombio/honeycomb-opentracing-proxy/app"
 	"github.com/honeycombio/honeycomb-opentracing-proxy/sinks"
 	flag "github.com/jessevdk/go-flags"
@@ -52,6 +53,7 @@ func main() {
 	)
 	if options.Debug {
 		sink.Add(&sinks.StdoutSink{})
+		logrus.SetLevel(logrus.DebugLevel)
 	}
 
 	sink.Start()
