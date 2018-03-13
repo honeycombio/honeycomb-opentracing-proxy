@@ -8,13 +8,16 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
+	"sync"
 	"testing"
 	"time"
 
+	"github.com/apache/thrift/lib/go/thrift"
 	"github.com/honeycombio/honeycomb-opentracing-proxy/sinks"
 	"github.com/honeycombio/honeycomb-opentracing-proxy/types"
 	libhoney "github.com/honeycombio/libhoney-go"
 	"github.com/stretchr/testify/assert"
+	"github.com/uber/jaeger/thrift-gen/zipkincore"
 )
 
 type MockSink struct {
@@ -327,28 +330,90 @@ func TestHoneycombSinkTagHandling(t *testing.T) {
 	libhoney.Close()
 	assert.Equal(mockHoneycomb.Events()[1].Dataset, "write-traces")
 	assert.Equal(mockHoneycomb.Events()[1].SampleRate, uint(1))
+}
 
+// Test that spans are sampled on a per-trace basis
+func TestSampling(t *testing.T) {
+	assert := assert.New(t)
+
+	mockHoneycomb := &libhoney.MockOutput{}
+	libhoney.Init(libhoney.Config{
+		WriteKey: "test",
+		Dataset:  "test",
+		Output:   mockHoneycomb,
+	})
+
+	downstream := newMockDownstream()
+	defer downstream.server.Close()
+	url, err := url.Parse(downstream.server.URL)
+	assert.NoError(err)
+	mirror := &Mirror{
+		DownstreamURL: url,
+	}
+	mirror.Start()
+
+	a := &App{
+		Sink:   &sinks.HoneycombSink{SampleRate: 10},
+		Mirror: mirror,
+	}
+
+	// Construct 30 traces of 10 spans each.
+	for spanID := int64(0); spanID < 10; spanID++ {
+		for traceID := int64(0); traceID < 30; traceID++ {
+			span := &zipkincore.Span{
+				TraceID: traceID,
+				ID:      spanID,
+				Name:    "someSpan",
+			}
+			body := serializeThriftSpans([]*zipkincore.Span{span})
+			w := handle(a, body, "application/x-thrift")
+			assert.Equal(w.Code, http.StatusAccepted)
+		}
+	}
+
+	mirror.Stop()
+
+	// Check that we sent 30 out of 300 spans to Honeycomb, and all 300 out of
+	// 300 spans to the Zipkin mirror.
+	assert.Equal(len(mockHoneycomb.Events()), 30)
+	assert.Equal(len(downstream.payloads), 300)
+
+	sampledSpanCounts := make(map[string]int)
+	for _, ev := range mockHoneycomb.Events() {
+		sampledSpanCounts[ev.Fields()["traceId"].(string)]++
+	}
+
+	// Check that we sent 3 out of 30 traces, and that each trace has a
+	// complete set of 10 spans.
+	assert.Equal(len(sampledSpanCounts), 3)
+	for _, v := range sampledSpanCounts {
+		assert.Equal(v, 10)
+	}
 }
 
 type mockDownstream struct {
 	server   *httptest.Server
 	payloads []payload
+
+	sync.Mutex
 }
 
 func newMockDownstream() *mockDownstream {
 	var payloads []payload
-	mu := &mockDownstream{
+	m := &mockDownstream{
 		payloads: payloads,
 	}
 
-	mu.server = httptest.NewServer(
+	m.server = httptest.NewServer(
 		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			defer r.Body.Close()
 			data, _ := ioutil.ReadAll(r.Body)
-			mu.payloads = append(mu.payloads, payload{ContentType: r.Header.Get("Content-Type"), Body: data})
+			m.Lock()
+			m.payloads = append(m.payloads, payload{ContentType: r.Header.Get("Content-Type"), Body: data})
+			m.Unlock()
 			w.WriteHeader(http.StatusAccepted)
 		}))
-	return mu
+	return m
 }
 
 func handle(a *App, payload []byte, contentType string) *httptest.ResponseRecorder {
@@ -358,4 +423,15 @@ func handle(a *App, payload []byte, contentType string) *httptest.ResponseRecord
 	w := httptest.NewRecorder()
 	a.handleSpans(w, r)
 	return w
+}
+
+func serializeThriftSpans(spans []*zipkincore.Span) []byte {
+	t := thrift.NewTMemoryBuffer()
+	p := thrift.NewTBinaryProtocolTransport(t)
+	p.WriteListBegin(thrift.STRUCT, len(spans))
+	for _, s := range spans {
+		s.Write(p)
+	}
+	p.WriteListEnd()
+	return t.Buffer.Bytes()
 }
