@@ -1,8 +1,6 @@
 package sinks
 
 import (
-	"fmt"
-
 	"github.com/Sirupsen/logrus"
 	"github.com/honeycombio/honeycomb-opentracing-proxy/types"
 	libhoney "github.com/honeycombio/libhoney-go"
@@ -36,7 +34,16 @@ func (hs *HoneycombSink) Start() error {
 
 	go func() {
 		for resp := range libhoney.Responses() {
-			fmt.Println("got libhoney response!", resp)
+			if resp.Err != nil || resp.StatusCode != 202 {
+				logrus.WithFields(logrus.Fields{
+					"error":  resp.Err,
+					"status": resp.StatusCode,
+					"body":   string(resp.Body),
+				}).Error("Error sending span to Honeycomb")
+			} else {
+				spanId, _ := resp.Metadata.(string)
+				logrus.WithField("spanId", spanId).Debug("Successfully sent span to Honeycomb")
+			}
 		}
 	}()
 
@@ -56,6 +63,7 @@ spanLoop:
 		ev := libhoney.NewEvent()
 		ev.Timestamp = s.Timestamp
 		ev.Add(s.CoreSpanMetadata)
+		ev.Metadata = s.ID
 		for k, v := range s.BinaryAnnotations {
 			if _, ok := hs.dropFieldsMap[k]; ok {
 				// drop this tag instead of sending its data to Honeycomb
