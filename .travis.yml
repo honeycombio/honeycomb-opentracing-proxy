@@ -5,17 +5,30 @@ sudo: true
 services:
  - docker
 
+addons:
+    artifacts:
+        debug: true
+        paths:
+        - $GOPATH/bin
+
 before_install:
   - sudo apt-get update
   - sudo apt-get -y -o Dpkg::Options::="--force-confnew" install docker-ce
+  - sudo apt-get install -y build-essential rpm
+  - gem install rpm
 
 script:
  - go test ./...
  - go vet ./...
 
 after_success:
+ - set -e
  - if [ "$TRAVIS_PULL_REQUEST" == "false" ] && [ "$TRAVIS_BRANCH" == "master" ]; then
    docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD";
-   make push;
-   make push-head;
+   docker build -t honeycombio/honeycomb-opentracing-proxy:latest .;
+   docker tag honeycombio/honeycomb-opentracing-proxy:latest honeycombio/honeycomb-opentracing-proxy:1.${TRAVIS_BUILD_NUMBER};
+   docker tag honeycombio/honeycomb-opentracing-proxy:latest honeycombio/honeycomb-opentracing-proxy:head;
+   docker push honeycombio/honeycomb-opentracing-proxy:latest;
+   docker push honeycombio/honeycomb-opentracing-proxy:1.${TRAVIS_BUILD_NUMBER};
+   docker push honeycombio/honeycomb-opentracing-proxy:head;
    fi
