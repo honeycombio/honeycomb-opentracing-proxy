@@ -51,13 +51,14 @@ func TestThriftDecoding(t *testing.T) {
 	expectedSpans := []types.Span{
 		types.Span{
 			CoreSpanMetadata: types.CoreSpanMetadata{
-				TraceID:     "350565b6a90d4c8c",
-				Name:        "/api.RetrieverService/Fetch",
-				ID:          "3ba1d9a5451f81c4",
-				ParentID:    "350565b6a90d4c8c",
-				DurationMs:  2.155,
-				HostIPv4:    "10.129.211.111",
-				ServiceName: "poodle",
+				TraceID:      "350565b6a90d4c8c",
+				TraceIDAsInt: 3820571694088408204,
+				Name:         "/api.RetrieverService/Fetch",
+				ID:           "3ba1d9a5451f81c4",
+				ParentID:     "350565b6a90d4c8c",
+				DurationMs:   2.155,
+				HostIPv4:     "10.129.211.111",
+				ServiceName:  "poodle",
 			},
 			BinaryAnnotations: map[string]interface{}{
 				"component": "gRPC",
@@ -66,13 +67,14 @@ func TestThriftDecoding(t *testing.T) {
 		},
 		types.Span{
 			CoreSpanMetadata: types.CoreSpanMetadata{
-				TraceID:     "350565b6a90d4c8c",
-				Name:        "persist",
-				ID:          "34472e70cb669b31",
-				ParentID:    "350565b6a90d4c8c",
-				ServiceName: "poodle",
-				HostIPv4:    "10.129.211.111",
-				DurationMs:  0.192,
+				TraceID:      "350565b6a90d4c8c",
+				TraceIDAsInt: 3820571694088408204,
+				Name:         "persist",
+				ID:           "34472e70cb669b31",
+				ParentID:     "350565b6a90d4c8c",
+				ServiceName:  "poodle",
+				HostIPv4:     "10.129.211.111",
+				DurationMs:   0.192,
 			},
 			BinaryAnnotations: map[string]interface{}{
 				"lc":             "poodle",
@@ -82,13 +84,14 @@ func TestThriftDecoding(t *testing.T) {
 		},
 		types.Span{
 			CoreSpanMetadata: types.CoreSpanMetadata{
-				TraceID:     "350565b6a90d4c8c",
-				Name:        "markAsDone",
-				ID:          "2eb1b7009815c803",
-				ParentID:    "350565b6a90d4c8c",
-				ServiceName: "poodle",
-				HostIPv4:    "10.129.211.111",
-				DurationMs:  5.134,
+				TraceID:      "350565b6a90d4c8c",
+				TraceIDAsInt: 3820571694088408204,
+				Name:         "markAsDone",
+				ID:           "2eb1b7009815c803",
+				ParentID:     "350565b6a90d4c8c",
+				ServiceName:  "poodle",
+				HostIPv4:     "10.129.211.111",
+				DurationMs:   5.134,
 			},
 			BinaryAnnotations: map[string]interface{}{
 				"lc": "poodle",
@@ -97,13 +100,14 @@ func TestThriftDecoding(t *testing.T) {
 		},
 		types.Span{
 			CoreSpanMetadata: types.CoreSpanMetadata{
-				TraceID:     "350565b6a90d4c8c",
-				Name:        "executeQuery",
-				ID:          "350565b6a90d4c8c",
-				ParentID:    "",
-				ServiceName: "poodle",
-				HostIPv4:    "10.129.211.111",
-				DurationMs:  9.98,
+				TraceID:      "350565b6a90d4c8c",
+				TraceIDAsInt: 3820571694088408204,
+				Name:         "executeQuery",
+				ID:           "350565b6a90d4c8c",
+				ParentID:     "",
+				ServiceName:  "poodle",
+				HostIPv4:     "10.129.211.111",
+				DurationMs:   9.98,
 			},
 			BinaryAnnotations: map[string]interface{}{
 				"lc":             "poodle",
