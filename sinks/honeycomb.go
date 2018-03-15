@@ -14,12 +14,19 @@ const sampleRateKey = "honeycomb.samplerate"
 // HoneycombSink implements the Sink interface. It sends spans to the Honeycomb
 // API.
 type HoneycombSink struct {
-	Writekey string
-	Dataset  string
-	APIHost  string
+	Writekey   string
+	Dataset    string
+	APIHost    string
+	DropFields []string
+
+	dropFieldsMap map[string]struct{}
 }
 
 func (hs *HoneycombSink) Start() error {
+	hs.dropFieldsMap = make(map[string]struct{})
+	for _, v := range hs.DropFields {
+		hs.dropFieldsMap[v] = struct{}{}
+	}
 	libhoney.Init(libhoney.Config{
 		WriteKey: hs.Writekey,
 		Dataset:  hs.Dataset,
@@ -46,6 +53,11 @@ spanLoop:
 		ev.Timestamp = s.Timestamp
 		ev.Add(s.CoreSpanMetadata)
 		for k, v := range s.BinaryAnnotations {
+			if _, ok := hs.dropFieldsMap[k]; ok {
+				// drop this tag instead of sending its data to Honeycomb
+				continue
+			}
+
 			switch k {
 			case datasetKey:
 				// Let clients route spans to different datasets using the

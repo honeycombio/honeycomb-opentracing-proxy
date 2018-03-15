@@ -20,8 +20,9 @@ type Options struct {
 	Port     string `long:"port" short:"p" description:"Port to listen on" default:":9411"`
 	APIHost  string `long:"api_host" description:"Hostname for the Honeycomb API server" default:"https://api.honeycomb.io/"`
 
-	Debug      bool   `long:"debug" description:"Also print spans to stdout"`
-	Downstream string `long:"downstream" description:"A host to forward span data along to (e.g., https://zipkin.example.com:9411). Use this to send data to Honeycomb and another Zipkin-compatible backend."`
+	DropFields []string `long:"drop_field" description:"Drop any span tags with this name instead of sending them to Honeycomb. You can specify this multiple times."`
+	Debug      bool     `long:"debug" description:"Also print spans to stdout"`
+	Downstream string   `long:"downstream" description:"A host to forward span data along to (e.g., https://zipkin.example.com:9411). Use this to send data to Honeycomb and another Zipkin-compatible backend."`
 }
 
 func main() {
@@ -42,9 +43,10 @@ func main() {
 	sink := &sinks.CompositeSink{}
 	sink.Add(
 		&sinks.HoneycombSink{
-			Writekey: options.Writekey,
-			Dataset:  options.Dataset,
-			APIHost:  options.APIHost,
+			Writekey:   options.Writekey,
+			Dataset:    options.Dataset,
+			APIHost:    options.APIHost,
+			DropFields: options.DropFields,
 		},
 	)
 	if options.Debug {
