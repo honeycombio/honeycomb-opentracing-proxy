@@ -17,6 +17,7 @@ type HoneycombSink struct {
 	Writekey   string
 	Dataset    string
 	APIHost    string
+	SampleRate uint
 	DropFields []string
 
 	dropFieldsMap map[string]struct{}
@@ -49,6 +50,9 @@ func (hs *HoneycombSink) Stop() error {
 func (hs *HoneycombSink) Send(spans []*types.Span) error {
 spanLoop:
 	for _, s := range spans {
+		if hs.SampleRate > 1 && s.TraceIDAsInt%int64(hs.SampleRate) != 0 {
+			continue
+		}
 		ev := libhoney.NewEvent()
 		ev.Timestamp = s.Timestamp
 		ev.Add(s.CoreSpanMetadata)

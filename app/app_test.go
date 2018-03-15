@@ -8,13 +8,16 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
+	"sync"
 	"testing"
 	"time"
 
+	"github.com/apache/thrift/lib/go/thrift"
 	"github.com/honeycombio/honeycomb-opentracing-proxy/sinks"
 	"github.com/honeycombio/honeycomb-opentracing-proxy/types"
 	libhoney "github.com/honeycombio/libhoney-go"
 	"github.com/stretchr/testify/assert"
+	"github.com/uber/jaeger/thrift-gen/zipkincore"
 )
 
 type MockSink struct {
@@ -48,13 +51,14 @@ func TestThriftDecoding(t *testing.T) {
 	expectedSpans := []types.Span{
 		types.Span{
 			CoreSpanMetadata: types.CoreSpanMetadata{
-				TraceID:     "350565b6a90d4c8c",
-				Name:        "/api.RetrieverService/Fetch",
-				ID:          "3ba1d9a5451f81c4",
-				ParentID:    "350565b6a90d4c8c",
-				DurationMs:  2.155,
-				HostIPv4:    "10.129.211.111",
-				ServiceName: "poodle",
+				TraceID:      "350565b6a90d4c8c",
+				TraceIDAsInt: 3820571694088408204,
+				Name:         "/api.RetrieverService/Fetch",
+				ID:           "3ba1d9a5451f81c4",
+				ParentID:     "350565b6a90d4c8c",
+				DurationMs:   2.155,
+				HostIPv4:     "10.129.211.111",
+				ServiceName:  "poodle",
 			},
 			BinaryAnnotations: map[string]interface{}{
 				"component": "gRPC",
@@ -63,13 +67,14 @@ func TestThriftDecoding(t *testing.T) {
 		},
 		types.Span{
 			CoreSpanMetadata: types.CoreSpanMetadata{
-				TraceID:     "350565b6a90d4c8c",
-				Name:        "persist",
-				ID:          "34472e70cb669b31",
-				ParentID:    "350565b6a90d4c8c",
-				ServiceName: "poodle",
-				HostIPv4:    "10.129.211.111",
-				DurationMs:  0.192,
+				TraceID:      "350565b6a90d4c8c",
+				TraceIDAsInt: 3820571694088408204,
+				Name:         "persist",
+				ID:           "34472e70cb669b31",
+				ParentID:     "350565b6a90d4c8c",
+				ServiceName:  "poodle",
+				HostIPv4:     "10.129.211.111",
+				DurationMs:   0.192,
 			},
 			BinaryAnnotations: map[string]interface{}{
 				"lc":             "poodle",
@@ -79,13 +84,14 @@ func TestThriftDecoding(t *testing.T) {
 		},
 		types.Span{
 			CoreSpanMetadata: types.CoreSpanMetadata{
-				TraceID:     "350565b6a90d4c8c",
-				Name:        "markAsDone",
-				ID:          "2eb1b7009815c803",
-				ParentID:    "350565b6a90d4c8c",
-				ServiceName: "poodle",
-				HostIPv4:    "10.129.211.111",
-				DurationMs:  5.134,
+				TraceID:      "350565b6a90d4c8c",
+				TraceIDAsInt: 3820571694088408204,
+				Name:         "markAsDone",
+				ID:           "2eb1b7009815c803",
+				ParentID:     "350565b6a90d4c8c",
+				ServiceName:  "poodle",
+				HostIPv4:     "10.129.211.111",
+				DurationMs:   5.134,
 			},
 			BinaryAnnotations: map[string]interface{}{
 				"lc": "poodle",
@@ -94,13 +100,14 @@ func TestThriftDecoding(t *testing.T) {
 		},
 		types.Span{
 			CoreSpanMetadata: types.CoreSpanMetadata{
-				TraceID:     "350565b6a90d4c8c",
-				Name:        "executeQuery",
-				ID:          "350565b6a90d4c8c",
-				ParentID:    "",
-				ServiceName: "poodle",
-				HostIPv4:    "10.129.211.111",
-				DurationMs:  9.98,
+				TraceID:      "350565b6a90d4c8c",
+				TraceIDAsInt: 3820571694088408204,
+				Name:         "executeQuery",
+				ID:           "350565b6a90d4c8c",
+				ParentID:     "",
+				ServiceName:  "poodle",
+				HostIPv4:     "10.129.211.111",
+				DurationMs:   9.98,
 			},
 			BinaryAnnotations: map[string]interface{}{
 				"lc":             "poodle",
@@ -327,28 +334,90 @@ func TestHoneycombSinkTagHandling(t *testing.T) {
 	libhoney.Close()
 	assert.Equal(mockHoneycomb.Events()[1].Dataset, "write-traces")
 	assert.Equal(mockHoneycomb.Events()[1].SampleRate, uint(1))
+}
 
+// Test that spans are sampled on a per-trace basis
+func TestSampling(t *testing.T) {
+	assert := assert.New(t)
+
+	mockHoneycomb := &libhoney.MockOutput{}
+	libhoney.Init(libhoney.Config{
+		WriteKey: "test",
+		Dataset:  "test",
+		Output:   mockHoneycomb,
+	})
+
+	downstream := newMockDownstream()
+	defer downstream.server.Close()
+	url, err := url.Parse(downstream.server.URL)
+	assert.NoError(err)
+	mirror := &Mirror{
+		DownstreamURL: url,
+	}
+	mirror.Start()
+
+	a := &App{
+		Sink:   &sinks.HoneycombSink{SampleRate: 10},
+		Mirror: mirror,
+	}
+
+	// Construct 30 traces of 10 spans each.
+	for spanID := int64(0); spanID < 10; spanID++ {
+		for traceID := int64(0); traceID < 30; traceID++ {
+			span := &zipkincore.Span{
+				TraceID: traceID,
+				ID:      spanID,
+				Name:    "someSpan",
+			}
+			body := serializeThriftSpans([]*zipkincore.Span{span})
+			w := handle(a, body, "application/x-thrift")
+			assert.Equal(w.Code, http.StatusAccepted)
+		}
+	}
+
+	mirror.Stop()
+
+	// Check that we sent 30 out of 300 spans to Honeycomb, and all 300 out of
+	// 300 spans to the Zipkin mirror.
+	assert.Equal(len(mockHoneycomb.Events()), 30)
+	assert.Equal(len(downstream.payloads), 300)
+
+	sampledSpanCounts := make(map[string]int)
+	for _, ev := range mockHoneycomb.Events() {
+		sampledSpanCounts[ev.Fields()["traceId"].(string)]++
+	}
+
+	// Check that we sent 3 out of 30 traces, and that each trace has a
+	// complete set of 10 spans.
+	assert.Equal(len(sampledSpanCounts), 3)
+	for _, v := range sampledSpanCounts {
+		assert.Equal(v, 10)
+	}
 }
 
 type mockDownstream struct {
 	server   *httptest.Server
 	payloads []payload
+
+	sync.Mutex
 }
 
 func newMockDownstream() *mockDownstream {
 	var payloads []payload
-	mu := &mockDownstream{
+	m := &mockDownstream{
 		payloads: payloads,
 	}
 
-	mu.server = httptest.NewServer(
+	m.server = httptest.NewServer(
 		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			defer r.Body.Close()
 			data, _ := ioutil.ReadAll(r.Body)
-			mu.payloads = append(mu.payloads, payload{ContentType: r.Header.Get("Content-Type"), Body: data})
+			m.Lock()
+			m.payloads = append(m.payloads, payload{ContentType: r.Header.Get("Content-Type"), Body: data})
+			m.Unlock()
 			w.WriteHeader(http.StatusAccepted)
 		}))
-	return mu
+	return m
 }
 
 func handle(a *App, payload []byte, contentType string) *httptest.ResponseRecorder {
@@ -358,4 +427,15 @@ func handle(a *App, payload []byte, contentType string) *httptest.ResponseRecord
 	w := httptest.NewRecorder()
 	a.handleSpans(w, r)
 	return w
+}
+
+func serializeThriftSpans(spans []*zipkincore.Span) []byte {
+	t := thrift.NewTMemoryBuffer()
+	p := thrift.NewTBinaryProtocolTransport(t)
+	p.WriteListBegin(thrift.STRUCT, len(spans))
+	for _, s := range spans {
+		s.Write(p)
+	}
+	p.WriteListEnd()
+	return t.Buffer.Bytes()
 }

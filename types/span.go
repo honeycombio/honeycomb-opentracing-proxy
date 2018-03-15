@@ -23,15 +23,16 @@ type Span struct {
 // a libhoney event. Annotations, BinaryAnnotations and Timestamp need special
 // handling.
 type CoreSpanMetadata struct {
-	TraceID     string  `json:"traceId"`
-	Name        string  `json:"name"`
-	ID          string  `json:"id"`
-	ParentID    string  `json:"parentId,omitempty"`
-	ServiceName string  `json:"serviceName,omitempty"`
-	HostIPv4    string  `json:"hostIPv4,omitempty"`
-	Port        int     `json:"port,omitempty"`
-	Debug       bool    `json:"debug,omitempty"`
-	DurationMs  float64 `json:"durationMs,omitempty"`
+	TraceID      string  `json:"traceId"`
+	TraceIDAsInt int64   `json:"-"` // Zipkin trace ID as integer; not added to events, but used for sampling decisions
+	Name         string  `json:"name"`
+	ID           string  `json:"id"`
+	ParentID     string  `json:"parentId,omitempty"`
+	ServiceName  string  `json:"serviceName,omitempty"`
+	HostIPv4     string  `json:"hostIPv4,omitempty"`
+	Port         int     `json:"port,omitempty"`
+	Debug        bool    `json:"debug,omitempty"`
+	DurationMs   float64 `json:"durationMs,omitempty"`
 }
 
 // convertTimestamp turns a Zipkin timestamp (a Unix timestamp in microseconds)

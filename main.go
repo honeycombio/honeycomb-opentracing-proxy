@@ -15,14 +15,14 @@ import (
 )
 
 type Options struct {
-	Writekey string `long:"writekey" short:"k" description:"Team write key"`
-	Dataset  string `long:"dataset" short:"d" description:"Name of the dataset to send events to"`
-	Port     string `long:"port" short:"p" description:"Port to listen on" default:":9411"`
-	APIHost  string `long:"api_host" description:"Hostname for the Honeycomb API server" default:"https://api.honeycomb.io/"`
-
-	DropFields []string `long:"drop_field" description:"Drop any span tags with this name instead of sending them to Honeycomb. You can specify this multiple times."`
+	Writekey   string   `long:"writekey" short:"k" description:"Team write key"`
+	Dataset    string   `long:"dataset" short:"d" description:"Name of the dataset to send events to"`
+	Port       string   `long:"port" short:"p" description:"Port to listen on" default:":9411"`
+	APIHost    string   `long:"api_host" description:"Hostname for the Honeycomb API server" default:"https://api.honeycomb.io/"`
 	Debug      bool     `long:"debug" description:"Also print spans to stdout"`
 	Downstream string   `long:"downstream" description:"A host to forward span data along to (e.g., https://zipkin.example.com:9411). Use this to send data to Honeycomb and another Zipkin-compatible backend."`
+	DropFields []string `long:"drop_field" description:"Drop any span tags with this name instead of sending them to Honeycomb. You can specify this multiple times."`
+	SampleRate uint     `long:"samplerate" description:"Only forward a sampled subset of traces to Honeycomb. Passing --samplerate=10 will forward 1 out of 10 traces."`
 }
 
 func main() {
@@ -47,6 +47,7 @@ func main() {
 			Dataset:    options.Dataset,
 			APIHost:    options.APIHost,
 			DropFields: options.DropFields,
+			SampleRate: options.SampleRate,
 		},
 	)
 	if options.Debug {

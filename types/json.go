@@ -3,6 +3,7 @@ package types
 import (
 	"encoding/json"
 	"io"
+	"strconv"
 )
 
 // DecodeJSON reads an array of JSON-encoded spans from an io.Reader, and
@@ -34,14 +35,16 @@ type ZipkinJSONSpan struct {
 }
 
 func convertJSONSpan(zs ZipkinJSONSpan) *Span {
+	traceIDAsInt, _ := strconv.ParseInt(zs.TraceID, 16, 64)
 	s := &Span{
 		CoreSpanMetadata: CoreSpanMetadata{
-			TraceID:    zs.TraceID,
-			Name:       zs.Name,
-			ID:         zs.ID,
-			ParentID:   zs.ParentID,
-			Debug:      zs.Debug,
-			DurationMs: float64(zs.Duration) / 1000.,
+			TraceID:      zs.TraceID,
+			TraceIDAsInt: traceIDAsInt,
+			Name:         zs.Name,
+			ID:           zs.ID,
+			ParentID:     zs.ParentID,
+			Debug:        zs.Debug,
+			DurationMs:   float64(zs.Duration) / 1000.,
 		},
 		Timestamp:         convertTimestamp(zs.Timestamp),
 		BinaryAnnotations: make(map[string]interface{}, len(zs.BinaryAnnotations)),
