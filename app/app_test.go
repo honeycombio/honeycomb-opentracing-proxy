@@ -240,7 +240,7 @@ func TestHoneycombOutput(t *testing.T) {
 	assert.Equal(mockHoneycomb.Events()[0].Dataset, "test")
 }
 
-func TestHoneycombSpecialTagHandling(t *testing.T) {
+func TestHoneycombSinkTagHandling(t *testing.T) {
 	assert := assert.New(t)
 	sampleSpanJSON := `{
 		"traceId":     "8fe5ac327a4a4a88",
@@ -251,6 +251,14 @@ func TestHoneycombSpecialTagHandling(t *testing.T) {
 			{
 				"key": "lc",
 				"value": "shepherd",
+				"host": {
+					"ipv4": "10.129.211.121",
+					"serviceName": "shepherd"
+				}
+			},
+			{
+				"key": "keyToDrop",
+				"value": "secret",
 				"host": {
 					"ipv4": "10.129.211.121",
 					"serviceName": "shepherd"
@@ -281,22 +289,37 @@ func TestHoneycombSpecialTagHandling(t *testing.T) {
 	err := json.Unmarshal([]byte(sampleSpanJSON), &sampleSpan)
 	assert.NoError(err)
 
+	sink := &sinks.HoneycombSink{DropFields: []string{"keyToDrop"}}
+	sink.Start()
+
 	mockHoneycomb := &libhoney.MockOutput{}
 	libhoney.Init(libhoney.Config{
 		WriteKey: "test",
 		Dataset:  "test",
 		Output:   mockHoneycomb,
 	})
-	a := &App{Sink: &sinks.HoneycombSink{}}
+
+	a := &App{Sink: sink}
 
 	payload, err := json.Marshal([]types.ZipkinJSONSpan{sampleSpan})
 	assert.NoError(err)
 	w := handle(a, payload, "application/json")
 	assert.Equal(w.Code, http.StatusAccepted)
+
 	assert.Equal(mockHoneycomb.Events()[0].Dataset, "write-traces")
 	assert.Equal(mockHoneycomb.Events()[0].SampleRate, uint(22))
+	assert.Equal(mockHoneycomb.Events()[0].Fields(),
+		map[string]interface{}{
+			"id":          "bb433fd338b2cecb",
+			"traceId":     "8fe5ac327a4a4a88",
+			"name":        "persist",
+			"hostIPv4":    "10.129.211.121",
+			"serviceName": "shepherd",
+			"durationMs":  0.222,
+			"lc":          "shepherd",
+		})
 
-	sampleSpan.BinaryAnnotations[2].Value = "-22"
+	sampleSpan.BinaryAnnotations[3].Value = "-22"
 	payload, err = json.Marshal([]types.ZipkinJSONSpan{sampleSpan})
 	assert.NoError(err)
 	w = handle(a, payload, "application/json")
