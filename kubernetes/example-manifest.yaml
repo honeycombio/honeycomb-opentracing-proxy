@@ -3,11 +3,9 @@ apiVersion: apps/v1beta1
 kind: Deployment
 metadata:
   name: honeycomb-opentracing-proxy
-  # Putting this in the istio-system namespace makes it work with Istio (for
-  # Istio 0.2)
-  namespace: istio-system
+  namespace: default
 spec:
-  replicas: 1
+  replicas: 2
   template:
     metadata:
       labels:
@@ -19,13 +17,15 @@ spec:
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 9411
-        command:
-          - /go/bin/honeycomb-opentracing-proxy
         args:
           - -d
-          - zipkin-test
+          - traces
           - -k
           - "$(HONEYCOMB_WRITEKEY)"
+          # To also send spans to a Zipkin collector listening at
+          # zipkin.default:9411, uncomment the following lines:
+          # - --downstream
+          # - zipkin.default:9411
         env:
         - name: HONEYCOMB_WRITEKEY
           valueFrom:
@@ -37,11 +37,10 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  # pretend to be zipkin for istio demo purposes
-  name: zipkin
+  name: honeycomb-opentracing-proxy
   labels:
-    app: zipkin
-  namespace: istio-system
+    app: honeycomb-opentracing-proxy
+  namespace: default
 spec:
   ports:
   - name: honeycomb-opentracing-proxy
