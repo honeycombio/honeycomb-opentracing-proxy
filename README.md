@@ -6,21 +6,39 @@ you can explore single traces, and run queries over aggregated trace data.
 
 <img src="docs/flow.png" alt="flow diagram" width="75%">
 
-## Usage
+## Getting Started
 
 First, [sign up](https://honeycomb.io/signup) for a free Honeycomb trial
-account.
+account, and grab your write key from your [account page](https://ui.honeycomb.io/account).
+
+
+### Installation
+
+If you have Go installed, you can clone this repository and build the
+proxy using the commands below. Alternatively, a [Docker image](https://hub.docker.com/r/honeycombio/honeycomb-opentracing-proxy)
+is available. Binary, deb and RPM package downloads will be available soon!
+
+```
+git clone git@github.com:honeycombio/honeycomb-opentracing-proxy \
+    $GOPATH/src/github.com/honeycombio/honeycomb-opentracing-proxy
+go install github.com/honeycombio/honeycomb-opentracing-proxy/...
+```
+
+### Usage
 
 ```
 # Forward spans to a Honeycomb dataset named `traces`, using writekey $WRITEKEY
 honeycomb-opentracing-proxy -d traces -k $WRITEKEY
 
-# Write spans to stdout
-honeycomb-opentracing-proxy --debug
-
 # Forward spans to a downstream "real" Zipkin collector as well
 honeycomb-opentracing-proxy --downstream https://myzipkin.example.com:9411
+
+# Write spans to stdout for debugging or local development
+honeycomb-opentracing-proxy --debug
 ```
+
+If you're using Kubernetes, you can find a sample deployment manifest in the
+[kubernetes/](/kubernetes) directory.
 
 ### Advanced usage
 
