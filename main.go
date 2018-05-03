@@ -61,9 +61,17 @@ func main() {
 	if options.Downstream != "" {
 		downstreamURL, err := url.Parse(options.Downstream)
 		if err != nil {
-			fmt.Printf("Invalid downstream value %s", options.Downstream)
+			fmt.Printf("Invalid downstream url %s\n", options.Downstream)
 			os.Exit(1)
 		}
+
+		scheme := downstreamURL.Scheme
+		isHTTP := scheme == "http" || scheme == "https"
+		if !isHTTP {
+			fmt.Printf("Invalid downstream url %s. Must be prefixed with http:// or https://\n", options.Downstream)
+			os.Exit(1)
+		}
+
 		downstreamURL.Path = "/api/v1/spans"
 		mirror = &app.Mirror{
 			DownstreamURL: downstreamURL,
