@@ -89,13 +89,13 @@ func convertJSONSpan(zs ZipkinJSONSpan) *Span {
 type Annotation struct {
 	Timestamp int64     `json:"timestamp"`
 	Value     string    `json:"value"`
-	Host      *Endpoint `json:"host,omitempty"`
+	Host      *Endpoint `json:"endpoint,omitempty"`
 }
 
 type binaryAnnotation struct {
 	Key      string    `json:"key"`
 	Value    string    `json:"value"`
-	Endpoint *Endpoint `json:"host,omitempty"`
+	Endpoint *Endpoint `json:"endpoint,omitempty"`
 }
 
 type Endpoint struct {

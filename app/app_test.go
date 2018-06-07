@@ -212,7 +212,7 @@ func TestHoneycombOutput(t *testing.T) {
 					{
 						"key": "lc",
 						"value": "poodle",
-						"host": {
+						"endpoint": {
 							"ipv4": "10.129.211.111",
 							"serviceName": "poodle"
 						}
@@ -220,7 +220,7 @@ func TestHoneycombOutput(t *testing.T) {
 					{
 						"key": "responseLength",
 						"value": "136",
-						"host": {
+						"endpoint": {
 							"ipv4": "10.129.211.111",
 							"serviceName": "poodle"
 						}
@@ -258,7 +258,7 @@ func TestHoneycombSinkTagHandling(t *testing.T) {
 			{
 				"key": "lc",
 				"value": "shepherd",
-				"host": {
+				"endpoint": {
 					"ipv4": "10.129.211.121",
 					"serviceName": "shepherd"
 				}
@@ -266,7 +266,7 @@ func TestHoneycombSinkTagHandling(t *testing.T) {
 			{
 				"key": "keyToDrop",
 				"value": "secret",
-				"host": {
+				"endpoint": {
 					"ipv4": "10.129.211.121",
 					"serviceName": "shepherd"
 				}
@@ -274,7 +274,7 @@ func TestHoneycombSinkTagHandling(t *testing.T) {
 			{
 				"key": "honeycomb.dataset",
 				"value": "write-traces",
-				"host": {
+				"endpoint": {
 					"ipv4": "10.129.211.121",
 					"serviceName": "shepherd"
 				}
@@ -282,7 +282,7 @@ func TestHoneycombSinkTagHandling(t *testing.T) {
 			{
 				"key": "honeycomb.samplerate",
 				"value": "22",
-				"host": {
+				"endpoint": {
 					"ipv4": "10.129.211.121",
 					"serviceName": "shepherd"
 				}
