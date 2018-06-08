@@ -26,6 +26,7 @@ func (hs *HoneycombSink) Start() error {
 	for _, v := range hs.DropFields {
 		hs.dropFieldsMap[v] = struct{}{}
 	}
+	libhoney.UserAgentAddition = "honeycomb-opentracing-proxy"
 	libhoney.Init(libhoney.Config{
 		WriteKey: hs.Writekey,
 		Dataset:  hs.Dataset,
