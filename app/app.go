@@ -81,6 +81,7 @@ func ungzipWrap(hf func(http.ResponseWriter, *http.Request)) func(http.ResponseW
 		if isGzipped == "gzip" {
 			buf := bytes.Buffer{}
 			if _, err := io.Copy(&buf, r.Body); err != nil {
+				logrus.WithError(err).Info("error allocating buffer for ungzipping")
 				w.WriteHeader(http.StatusBadRequest)
 				w.Write([]byte("error allocating buffer for ungzipping"))
 				return
@@ -88,6 +89,7 @@ func ungzipWrap(hf func(http.ResponseWriter, *http.Request)) func(http.ResponseW
 			var err error
 			newBody, err = gzip.NewReader(&buf)
 			if err != nil {
+				logrus.WithError(err).Info("error ungzipping span data")
 				w.WriteHeader(http.StatusBadRequest)
 				w.Write([]byte("error ungzipping span data"))
 				return
