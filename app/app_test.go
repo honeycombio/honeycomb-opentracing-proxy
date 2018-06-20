@@ -2,6 +2,7 @@ package app
 
 import (
 	"bytes"
+	"compress/gzip"
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
@@ -38,16 +39,10 @@ func (ms *MockSink) Stop() error  { return nil }
 // that it's decoded and forwarded correctly.
 func TestThriftDecoding(t *testing.T) {
 	assert := assert.New(t)
-	ms := &MockSink{}
-
-	a := &App{Sink: ms}
-
 	testFile, err := os.Open("testdata/payload_0.thrift")
 	assert.NoError(err)
 	data, err := ioutil.ReadAll(testFile)
 	assert.NoError(err)
-	w := handle(a, data, "application/x-thrift")
-	assert.Equal(w.Code, http.StatusAccepted)
 	expectedSpans := []types.Span{
 		types.Span{
 			CoreSpanMetadata: types.CoreSpanMetadata{
@@ -125,8 +120,17 @@ func TestThriftDecoding(t *testing.T) {
 			Timestamp: time.Date(2017, 9, 28, 20, 15, 17, 284010000, time.UTC),
 		},
 	}
-	assert.Equal(ms.spans[:4], expectedSpans)
+	// verify with both zipped and ungzipped data
+	ms := &MockSink{}
+	a := &App{Sink: ms}
+	w := handleGzipped(a, data, "application/x-thrift")
 	assert.Equal(w.Code, http.StatusAccepted)
+	assert.Equal(ms.spans[:4], expectedSpans)
+	ms = &MockSink{}
+	a = &App{Sink: ms}
+	w = handle(a, data, "application/x-thrift")
+	assert.Equal(w.Code, http.StatusAccepted)
+	assert.Equal(ms.spans[:4], expectedSpans)
 }
 
 // TestMirroring tests the mirroring of unmodified request data to a downstream
@@ -157,7 +161,7 @@ func TestMirroring(t *testing.T) {
 
 	data, err := ioutil.ReadAll(testFile)
 	assert.NoError(err)
-	w := handle(a, data, "application/x-thrift")
+	w := handleGzipped(a, data, "application/x-thrift")
 	assert.Equal(w.Code, http.StatusAccepted)
 
 	mirror.Stop()
@@ -188,7 +192,7 @@ func TestMirroringWhenDestinationUnavailable(t *testing.T) {
 
 	data, err := ioutil.ReadAll(testFile)
 	assert.NoError(err)
-	w := handle(a, data, "application/x-thrift")
+	w := handleGzipped(a, data, "application/x-thrift")
 	assert.Equal(w.Code, http.StatusAccepted)
 
 }
@@ -230,7 +234,7 @@ func TestHoneycombOutput(t *testing.T) {
 				"duration": 192
 			}]`
 
-	w := handle(a, []byte(jsonPayload), "application/json")
+	w := handleGzipped(a, []byte(jsonPayload), "application/json")
 	assert.Equal(w.Code, http.StatusAccepted)
 	assert.Equal(len(mockHoneycomb.Events()), 1)
 	assert.Equal(mockHoneycomb.Events()[0].Fields(),
@@ -310,7 +314,7 @@ func TestHoneycombSinkTagHandling(t *testing.T) {
 
 	payload, err := json.Marshal([]types.ZipkinJSONSpan{sampleSpan})
 	assert.NoError(err)
-	w := handle(a, payload, "application/json")
+	w := handleGzipped(a, payload, "application/json")
 	assert.Equal(w.Code, http.StatusAccepted)
 
 	assert.Equal(mockHoneycomb.Events()[0].Dataset, "write-traces")
@@ -329,7 +333,7 @@ func TestHoneycombSinkTagHandling(t *testing.T) {
 	sampleSpan.BinaryAnnotations[3].Value = "-22"
 	payload, err = json.Marshal([]types.ZipkinJSONSpan{sampleSpan})
 	assert.NoError(err)
-	w = handle(a, payload, "application/json")
+	w = handleGzipped(a, payload, "application/json")
 	assert.Equal(w.Code, http.StatusAccepted)
 	libhoney.Close()
 	assert.Equal(mockHoneycomb.Events()[1].Dataset, "write-traces")
@@ -370,7 +374,7 @@ func TestSampling(t *testing.T) {
 				Name:    "someSpan",
 			}
 			body := serializeThriftSpans([]*zipkincore.Span{span})
-			w := handle(a, body, "application/x-thrift")
+			w := handleGzipped(a, body, "application/x-thrift")
 			assert.Equal(w.Code, http.StatusAccepted)
 		}
 	}
@@ -426,6 +430,21 @@ func handle(a *App, payload []byte, contentType string) *httptest.ResponseRecord
 	r.Header.Add("Content-Type", contentType)
 	w := httptest.NewRecorder()
 	a.handleSpans(w, r)
+	return w
+}
+
+func handleGzipped(a *App, payload []byte, contentType string) *httptest.ResponseRecorder {
+	var compressedPayload bytes.Buffer
+	zw := gzip.NewWriter(&compressedPayload)
+	zw.Write(payload)
+	zw.Close()
+
+	r := httptest.NewRequest("POST", "/api/v1/spans",
+		&compressedPayload)
+	r.Header.Add("Content-Encoding", "gzip")
+	r.Header.Add("Content-Type", contentType)
+	w := httptest.NewRecorder()
+	ungzipWrap(a.handleSpans)(w, r)
 	return w
 }
 

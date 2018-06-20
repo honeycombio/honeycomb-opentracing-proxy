@@ -2,6 +2,7 @@ package app
 
 import (
 	"bytes"
+	"compress/gzip"
 	"context"
 	"errors"
 	"io"
@@ -71,9 +72,37 @@ func (a *App) handleSpans(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusAccepted)
 }
 
+// ungzipWrap wraps a handleFunc and transparently ungzips the body of the
+// request if it is gzipped
+func ungzipWrap(hf func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var newBody io.ReadCloser
+		isGzipped := r.Header.Get("Content-Encoding")
+		if isGzipped == "gzip" {
+			buf := bytes.Buffer{}
+			if _, err := io.Copy(&buf, r.Body); err != nil {
+				logrus.WithError(err).Info("error allocating buffer for ungzipping")
+				w.WriteHeader(http.StatusBadRequest)
+				w.Write([]byte("error allocating buffer for ungzipping"))
+				return
+			}
+			var err error
+			newBody, err = gzip.NewReader(&buf)
+			if err != nil {
+				logrus.WithError(err).Info("error ungzipping span data")
+				w.WriteHeader(http.StatusBadRequest)
+				w.Write([]byte("error ungzipping span data"))
+				return
+			}
+			r.Body = newBody
+		}
+		hf(w, r)
+	}
+}
+
 func (a *App) Start() error {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/api/v1/spans", a.handleSpans)
+	mux.HandleFunc("/api/v1/spans", ungzipWrap(a.handleSpans))
 
 	a.server = &http.Server{
 		Addr:    a.Port,
