@@ -133,6 +133,35 @@ func TestThriftDecoding(t *testing.T) {
 	assert.Equal(ms.spans[:4], expectedSpans)
 }
 
+func TestThriftRootSpans(t *testing.T) {
+	// Test that spans with a *zero* parentID get converted to spans with a nil
+	// parentID.
+	assert := assert.New(t)
+	var zero int64
+	body := serializeThriftSpans([]*zipkincore.Span{
+		&zipkincore.Span{
+			TraceID:  2222,
+			ID:       2222,
+			ParentID: &zero,
+			Name:     "mySpan",
+		},
+	})
+	ms := &MockSink{}
+	a := &App{Sink: ms}
+	w := handle(a, body, "application/x-thrift")
+	assert.Equal(w.Code, http.StatusAccepted)
+	assert.Equal(ms.spans[0], types.Span{
+		CoreSpanMetadata: types.CoreSpanMetadata{
+			TraceID:      "8ae",
+			TraceIDAsInt: 2222,
+			ID:           "8ae",
+			ParentID:     "",
+			Name:         "mySpan",
+		},
+		BinaryAnnotations: map[string]interface{}{},
+	})
+}
+
 // TestMirroring tests the mirroring of unmodified request data to a downstream
 // service.
 func TestMirroring(t *testing.T) {

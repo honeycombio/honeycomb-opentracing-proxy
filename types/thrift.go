@@ -23,7 +23,7 @@ func convertThriftSpan(ts *zipkincore.Span) *Span {
 		},
 		BinaryAnnotations: make(map[string]interface{}, len(ts.BinaryAnnotations)),
 	}
-	if ts.ParentID != nil {
+	if ts.ParentID != nil && *ts.ParentID != 0 {
 		s.ParentID = convertID(*ts.ParentID)
 	}
 
