@@ -1,0 +1,11 @@
+language: go
+deploy:
+  pipeline: default
+  chart: default
+  group: platform
+  locations:
+  - us-east-1
+roles:
+  webserver:
+    static: false
+    command: /honeycomb-opentracing-proxy -d ui-development -k $(HONEYCOMB_WRITEKEY) --debug
