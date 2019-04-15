@@ -9,10 +9,13 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/gorilla/handlers"
 	"github.com/honeycombio/honeycomb-opentracing-proxy/sinks"
 	"github.com/honeycombio/honeycomb-opentracing-proxy/types"
 )
@@ -104,10 +107,16 @@ func (a *App) Start() error {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/v1/spans", ungzipWrap(a.handleSpans))
 
+	// Enable CORS preflight check support
+	headersOk := handlers.AllowedHeaders([]string{"X-Requested-With", "Content-Type"})
+	originsOk := handlers.AllowedOrigins(strings.Split(os.Getenv("ORIGINS_ALLOWED"), ";"))
+	methodsOk := handlers.AllowedMethods([]string{"POST", "OPTIONS"})
+
 	a.server = &http.Server{
 		Addr:    a.Port,
-		Handler: mux,
+		Handler: handlers.CORS(originsOk, headersOk, methodsOk)(mux),
 	}
+
 	go a.server.ListenAndServe()
 	logrus.WithField("port", a.Port).Info("Listening")
 	return nil
