@@ -107,9 +107,11 @@ func (a *App) Start() error {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/v1/spans", ungzipWrap(a.handleSpans))
 
-	// Enable CORS preflight check support
-	headersOk := handlers.AllowedHeaders([]string{"X-Requested-With", "Content-Type"})
+	// Handlers enable CORS preflight check support
+	// If ORIGINS_ALLOWED is unset, Access-Control-Allow-Origin header will never be sent,
+	// triggering a CORS preflight check error in browser that issues the request
 	originsOk := handlers.AllowedOrigins(strings.Split(os.Getenv("ORIGINS_ALLOWED"), ";"))
+	headersOk := handlers.AllowedHeaders([]string{"X-Requested-With", "Content-Type"})
 	methodsOk := handlers.AllowedMethods([]string{"POST", "OPTIONS"})
 
 	a.server = &http.Server{
