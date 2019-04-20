@@ -207,7 +207,7 @@ func TestThriftRootSpans(t *testing.T) {
 			ParentID:     "",
 			Name:         "mySpan",
 		},
-		Timestamp:         now,
+		Timestamp:         now.Round(time.Microsecond),
 		BinaryAnnotations: map[string]interface{}{},
 	})
 }
