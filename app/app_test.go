@@ -69,9 +69,9 @@ func TestMissingThriftTimestampHandling(t *testing.T) {
 
 	thriftPayload := serializeThriftSpans([]*zipkincore.Span{
 		&zipkincore.Span{
-			TraceID:  2222,
-			ID:       2222,
-			Name:     "mySpan",
+			TraceID: 2222,
+			ID:      2222,
+			Name:    "mySpan",
 		},
 	})
 
@@ -188,10 +188,10 @@ func TestThriftRootSpans(t *testing.T) {
 	var zero int64
 	body := serializeThriftSpans([]*zipkincore.Span{
 		&zipkincore.Span{
-			TraceID:  2222,
-			ID:       2222,
-			ParentID: &zero,
-			Name:     "mySpan",
+			TraceID:   2222,
+			ID:        2222,
+			ParentID:  &zero,
+			Name:      "mySpan",
 			Timestamp: &n,
 		},
 	})
@@ -207,7 +207,7 @@ func TestThriftRootSpans(t *testing.T) {
 			ParentID:     "",
 			Name:         "mySpan",
 		},
-		Timestamp: now,
+		Timestamp:         now,
 		BinaryAnnotations: map[string]interface{}{},
 	})
 }
