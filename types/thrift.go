@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net"
+	"time"
 
 	"github.com/apache/thrift/lib/go/thrift"
 	"github.com/uber/jaeger/thrift-gen/zipkincore"
@@ -33,6 +34,8 @@ func convertThriftSpan(ts *zipkincore.Span) *Span {
 
 	if ts.Timestamp != nil {
 		s.Timestamp = convertTimestamp(*ts.Timestamp)
+	} else {
+		s.Timestamp = time.Now().UTC()
 	}
 
 	var endpoint *zipkincore.Endpoint

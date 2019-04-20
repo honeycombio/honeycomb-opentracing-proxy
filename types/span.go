@@ -38,6 +38,10 @@ type CoreSpanMetadata struct {
 // convertTimestamp turns a Zipkin timestamp (a Unix timestamp in microseconds)
 // into a time.Time value.
 func convertTimestamp(tsMicros int64) time.Time {
+	if tsMicros == 0 {
+		return time.Now().UTC()
+	}
+
 	return time.Unix(tsMicros/1000000, (tsMicros%1000000)*1000).UTC()
 }
 
