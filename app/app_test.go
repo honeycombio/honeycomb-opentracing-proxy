@@ -199,7 +199,7 @@ func TestThriftRootSpans(t *testing.T) {
 	a := &App{Sink: ms}
 	w := handle(a, body, "application/x-thrift")
 	assert.Equal(w.Code, http.StatusAccepted)
-	assert.Equal(ms.spans[0], types.Span{
+	assert.Equal(types.Span{
 		CoreSpanMetadata: types.CoreSpanMetadata{
 			TraceID:      "8ae",
 			TraceIDAsInt: 2222,
@@ -209,7 +209,7 @@ func TestThriftRootSpans(t *testing.T) {
 		},
 		Timestamp:         now.Round(time.Microsecond),
 		BinaryAnnotations: map[string]interface{}{},
-	})
+	}, ms.spans[0])
 }
 
 // TestMirroring tests the mirroring of unmodified request data to a downstream
