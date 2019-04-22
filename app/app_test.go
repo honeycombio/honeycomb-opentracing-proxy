@@ -183,7 +183,7 @@ func TestThriftRootSpans(t *testing.T) {
 	// Test that spans with a *zero* parentID get converted to spans with a nil
 	// parentID.
 	assert := assert.New(t)
-	now := time.Now().UTC()
+	now := time.Now().UTC().Round(time.Microsecond)
 	n := now.UnixNano() / int64(time.Microsecond)
 	var zero int64
 	body := serializeThriftSpans([]*zipkincore.Span{
@@ -207,7 +207,7 @@ func TestThriftRootSpans(t *testing.T) {
 			ParentID:     "",
 			Name:         "mySpan",
 		},
-		Timestamp:         now.Round(time.Microsecond),
+		Timestamp:         now,
 		BinaryAnnotations: map[string]interface{}{},
 	}, ms.spans[0])
 }
