@@ -2,6 +2,7 @@ package: github.com/honeycombio/honeycomb-opentracing-proxy
 import:
 - package: github.com/Sirupsen/logrus
   version: ~1.0.3
+  repo: https://github.com/sirupsen/logrus.git
 - package: github.com/apache/thrift
   version: ~0.10.0
   subpackages:

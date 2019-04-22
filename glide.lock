@@ -1,5 +1,5 @@
-hash: 4f4a7466376c1bd4d9b7be4775b36660394a3b16ae67a15e5c120f0e643c6c4f
-updated: 2018-01-05T16:17:56.349053318-08:00
+hash: 0ee070a53ceb130b61ef43fe2f932ebc74d854d220096be6c240afadd52f276a
+updated: 2019-04-22T17:27:53.985233-03:00
 imports:
 - name: github.com/apache/thrift
   version: b2a4d4ae21c789b689dd162deb819665567f481c
@@ -8,13 +8,13 @@ imports:
 - name: github.com/facebookgo/clock
   version: 600d898af40aa09a7a93ecb9265d87b0504b6f03
 - name: github.com/facebookgo/inject
-  version: d5029152fecb2a8e68f7f8eb3c6391fc8ee70496
+  version: f23751cae28bef101a38b79266785d3b574cf7e8
 - name: github.com/facebookgo/limitgroup
   version: 6abd8d71ec01451d7f1929eacaa263bbe2935d05
 - name: github.com/facebookgo/muster
   version: fd3d7953fd52354a74b9f6b3d70d0c9650c4ec2a
 - name: github.com/facebookgo/startstop
-  version: 69abd424c676eb577bb9bb917a98289d7d752b15
+  version: bc158412526d4d11f91db720786fc07131b6fb4d
 - name: github.com/facebookgo/structtag
   version: 217e25fb96916cc60332e399c9aa63f5c422ceed
 - name: github.com/honeycombio/libhoney-go
@@ -22,14 +22,15 @@ imports:
 - name: github.com/jessevdk/go-flags
   version: 96dc06278ce32a0e9d957d590bb987c81ee66407
 - name: github.com/opentracing/opentracing-go
-  version: 1949ddbfd147afd4d964a9f00b24eb291e0e7c38
+  version: 659c90643e714681897ec2521c60567dd21da733
   subpackages:
   - ext
   - log
 - name: github.com/Sirupsen/logrus
-  version: d682213848ed68c0a260ca37d6dd5ace8423f5ba
+  version: 3e01752db0189b9157070a0e1668a620f9a85da2
+  repo: https://github.com/sirupsen/logrus.git
 - name: github.com/uber-go/atomic
-  version: 8474b86a5a6f79c443ce4b2992817ff32cf208b8
+  version: 5328d69c76a98d1d21c773653a5a78fa28d89921
 - name: github.com/uber/jaeger
   version: 2f5fcfb36cbbddd0706902f77931b3298443bfa0
   subpackages:
@@ -44,26 +45,27 @@ imports:
   - trand
   - typed
 - name: golang.org/x/crypto
-  version: 9e7f5dc375abeb9619ea3c5c58502c428f457aa2
+  version: de0752318171da717af4ce24d0a2e8626afaeb11
   subpackages:
   - ssh/terminal
 - name: golang.org/x/net
-  version: 42fe2e1c20de1054d3d30f82cc9fb5b41e2e3767
+  version: 66a96c8a540e84140eaf74e38bb3a0a2ff5e5c53
   subpackages:
   - context
 - name: golang.org/x/sys
   version: 53aa286056ef226755cd898109dbcdaba8ac0b81
   subpackages:
   - unix
+  - windows
 - name: gopkg.in/alexcesaro/statsd.v2
   version: 7fea3f0d2fab1ad973e641e51dba45443a311a90
 testImports:
 - name: github.com/davecgh/go-spew
-  version: ecdeabc65495df2dec95d7c4a4c3e021903035e5
+  version: d8f796af33cc11cb798c1aaeb27a4ebc5099927d
   subpackages:
   - spew
 - name: github.com/pmezard/go-difflib
-  version: 792786c7400a136282c1664665ae0a8db921c6c2
+  version: 5d4384ee4fb2527b0a1256a821ebfc92f91efefc
   subpackages:
   - difflib
 - name: github.com/stretchr/testify

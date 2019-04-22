@@ -15,16 +15,16 @@ import (
 func convertThriftSpan(ts *zipkincore.Span) *Span {
 	s := &Span{
 		CoreSpanMetadata: CoreSpanMetadata{
-			TraceID:      convertID(ts.TraceID),
+			TraceID:      convertID(ts.TraceIDHigh, ts.TraceID),
 			TraceIDAsInt: ts.TraceID,
 			Name:         ts.Name,
-			ID:           convertID(ts.ID),
+			ID:           convertID(nil, ts.ID),
 			Debug:        ts.Debug,
 		},
 		BinaryAnnotations: make(map[string]interface{}, len(ts.BinaryAnnotations)),
 	}
 	if ts.ParentID != nil && *ts.ParentID != 0 {
-		s.ParentID = convertID(*ts.ParentID)
+		s.ParentID = convertID(nil, *ts.ParentID)
 	}
 
 	if ts.Duration != nil {
@@ -68,8 +68,12 @@ func convertThriftSpan(ts *zipkincore.Span) *Span {
 	return s
 }
 
-func convertID(id int64) string {
-	return fmt.Sprintf("%x", id) // TODO is this right?
+func convertID(highId *int64, id int64) string {
+	if highId != nil {
+		return fmt.Sprintf("%x%x", *highId, id)
+	} else {
+		return fmt.Sprintf("%x", id)
+	}
 }
 
 func convertIPv4(ip int32) string {

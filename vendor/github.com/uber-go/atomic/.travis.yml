@@ -1,0 +1,31 @@
+sudo: false
+language: go
+go_import_path: go.uber.org/atomic
+
+go:
+  - 1.7.x
+  - 1.8.x
+  - 1.9.x
+  - 1.10.x
+  - 1.11.x
+  - 1.x # latest release
+
+matrix:
+  include:
+  - go: 1.11.x
+    env: NO_TEST=yes LINT=yes
+
+cache:
+  directories:
+    - vendor
+
+install:
+  - make install_ci
+
+script:
+  - test -n "$NO_TEST" || make test_ci
+  - test -n "$NO_TEST" || scripts/test-ubergo.sh
+  - test -z "$LINT" || make install_lint lint
+
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
