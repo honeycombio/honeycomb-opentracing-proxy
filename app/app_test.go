@@ -35,6 +35,52 @@ func (ms *MockSink) Send(spans []*types.Span) error {
 func (ms *MockSink) Start() error { return nil }
 func (ms *MockSink) Stop() error  { return nil }
 
+func TestMissingJSONTimestampHandling(t *testing.T) {
+	mockHoneycomb := &libhoney.MockOutput{}
+	assert := assert.New(t)
+	libhoney.Init(libhoney.Config{
+		WriteKey: "test",
+		Dataset:  "test",
+		Output:   mockHoneycomb,
+	})
+	a := &App{Sink: &sinks.HoneycombSink{}}
+
+	jsonPayload := `[{
+				"traceId":     "350565b6a90d4c8c",
+				"name":        "persist",
+				"id":          "34472e70cb669b31"
+			}]`
+
+	now := time.Now()
+	w := handleGzipped(a, []byte(jsonPayload), "application/json")
+	assert.Equal(w.Code, http.StatusAccepted)
+	assert.WithinDuration(now, mockHoneycomb.Events()[0].Timestamp, 2*time.Second, "Missing timestamp should be populated")
+}
+
+func TestMissingThriftTimestampHandling(t *testing.T) {
+	mockHoneycomb := &libhoney.MockOutput{}
+	assert := assert.New(t)
+	libhoney.Init(libhoney.Config{
+		WriteKey: "test",
+		Dataset:  "test",
+		Output:   mockHoneycomb,
+	})
+	a := &App{Sink: &sinks.HoneycombSink{}}
+
+	thriftPayload := serializeThriftSpans([]*zipkincore.Span{
+		&zipkincore.Span{
+			TraceID: 2222,
+			ID:      2222,
+			Name:    "mySpan",
+		},
+	})
+
+	now := time.Now().UTC()
+	w := handleGzipped(a, thriftPayload, "application/x-thrift")
+	assert.Equal(w.Code, http.StatusAccepted)
+	assert.WithinDuration(now, mockHoneycomb.Events()[0].Timestamp, 10*time.Second, "Empty timestamp should be set to current")
+}
+
 // TestThriftDecoding takes a capture of a zipkin thrift payload, and ensures
 // that it's decoded and forwarded correctly.
 func TestThriftDecoding(t *testing.T) {
@@ -137,20 +183,23 @@ func TestThriftRootSpans(t *testing.T) {
 	// Test that spans with a *zero* parentID get converted to spans with a nil
 	// parentID.
 	assert := assert.New(t)
+	now := time.Now().UTC().Round(time.Microsecond)
+	n := now.UnixNano() / int64(time.Microsecond)
 	var zero int64
 	body := serializeThriftSpans([]*zipkincore.Span{
 		&zipkincore.Span{
-			TraceID:  2222,
-			ID:       2222,
-			ParentID: &zero,
-			Name:     "mySpan",
+			TraceID:   2222,
+			ID:        2222,
+			ParentID:  &zero,
+			Name:      "mySpan",
+			Timestamp: &n,
 		},
 	})
 	ms := &MockSink{}
 	a := &App{Sink: ms}
 	w := handle(a, body, "application/x-thrift")
 	assert.Equal(w.Code, http.StatusAccepted)
-	assert.Equal(ms.spans[0], types.Span{
+	assert.Equal(types.Span{
 		CoreSpanMetadata: types.CoreSpanMetadata{
 			TraceID:      "8ae",
 			TraceIDAsInt: 2222,
@@ -158,8 +207,9 @@ func TestThriftRootSpans(t *testing.T) {
 			ParentID:     "",
 			Name:         "mySpan",
 		},
+		Timestamp:         now,
 		BinaryAnnotations: map[string]interface{}{},
-	})
+	}, ms.spans[0])
 }
 
 // TestMirroring tests the mirroring of unmodified request data to a downstream
