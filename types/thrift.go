@@ -70,7 +70,7 @@ func convertThriftSpan(ts *zipkincore.Span) *Span {
 
 func convertID(highId *int64, id int64) string {
 	if highId != nil {
-		return fmt.Sprintf("%x%x", *highId, id)
+		return fmt.Sprintf("%016x%016x", *highId, id)
 	} else {
 		return fmt.Sprintf("%x", id)
 	}
