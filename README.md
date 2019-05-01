@@ -50,3 +50,11 @@ tag to your spans. E.g.
 span, ctx := opentracing.StartSpan("myNewSpan")
 span.SetTag("honeycomb.dataset", "My Shiny Tracing Dataset")
 ```
+
+### Using with a corporate/internal proxy server
+
+If your outbound HTTP traffic goes through an internal/corporate proxy server, you might need to specify the `HTTPS_PROXY` environment variable when running the OpenTracing proxy:
+
+```
+HTTPS_PROXY=<my proxy address>
+```
