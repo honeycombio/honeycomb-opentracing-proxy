@@ -22,6 +22,7 @@ spec:
           - traces
           - -k
           - "$(HONEYCOMB_WRITEKEY)"
+          - --debug
           # To also send spans to a Zipkin collector listening at
           # zipkin.default:9411, uncomment the following lines:
           # - --downstream
