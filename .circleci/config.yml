@@ -1,0 +1,65 @@
+version: 2.1
+
+orbs:
+  buildevents: honeycombio/buildevents@0.2.3
+
+executors:
+  linuxgo:
+    working_directory: /go/src/github.com/honeycombio/honeycomb-opentracing-proxy
+    docker:
+      - image: circleci/golang:1.9
+
+jobs:
+  setup:
+    executor: linuxgo
+    steps:
+      - buildevents/start_trace
+  watch:
+    executor: linuxgo
+    steps:
+      - buildevents/watch_build_and_finish
+  test:
+    executor: linuxgo
+    steps:
+      - buildevents/with_job_span:
+          steps:
+            - checkout
+            ## method 2 to send a command span
+            ## buildevent/berun is a circleci friendly way to create a buildevents command span
+            - buildevents/berun:
+                bename: go_test
+                becommand: go test -v ./...
+  build:
+    executor: linuxgo
+    steps:
+      - checkout
+
+      # specify any bash command here prefixed with `run: `
+      - run: go get -v -t -d ./...
+      - run: go test -v ./...
+
+workflows:
+  build:
+    jobs:
+      - setup:
+          filters:
+            tags:
+              only: /.*/
+      - watch:
+          requires:
+            - setup
+          filters:
+            tags:
+              only: /.*/
+      - test:
+          requires:
+            - setup
+          filters:
+            tags:
+              only: /.*/
+      - build:
+          requires:
+            - test
+          filters:
+            tags:
+              only: /.*/
