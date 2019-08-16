@@ -41,25 +41,13 @@ jobs:
 workflows:
   build:
     jobs:
-      - setup:
-          filters:
-            tags:
-              only: /.*/
+      - setup
       - watch:
           requires:
             - setup
-          filters:
-            tags:
-              only: /.*/
       - test:
           requires:
             - setup
-          filters:
-            tags:
-              only: /.*/
       - build:
           requires:
             - test
-          filters:
-            tags:
-              only: /.*/
