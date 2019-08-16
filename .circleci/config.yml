@@ -39,7 +39,7 @@ jobs:
                 echo "export VERSION_ID=${CIRCLE_TAG:-dev}" >> $BASH_ENV
             - run: |
                 GOOS=linux \
-                GOARCH=arm64 \
+                GOARCH=amd64 \
                 CGO_ENABLED=0 \
                 buildevents cmd $CIRCLE_WORKFLOW_ID $BUILDEVENTS_SPAN_ID go_build -- \
                 go install -ldflags "-X main.Version=${VERSION_ID}"
