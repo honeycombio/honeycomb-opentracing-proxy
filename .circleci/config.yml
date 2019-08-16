@@ -1,0 +1,97 @@
+version: 2.1
+
+orbs:
+  buildevents: honeycombio/buildevents@0.2.3
+
+executors:
+  linuxgo:
+    working_directory: /go/src/github.com/honeycombio/honeycomb-opentracing-proxy
+    docker:
+      - image: circleci/golang:1.9
+
+jobs:
+  setup:
+    executor: linuxgo
+    steps:
+      - buildevents/start_trace
+  watch:
+    executor: linuxgo
+    steps:
+      - buildevents/watch_build_and_finish
+  test:
+    executor: linuxgo
+    steps:
+      - buildevents/with_job_span:
+          steps:
+            - checkout
+            ## method 2 to send a command span
+            ## buildevent/berun is a circleci friendly way to create a buildevents command span
+            - buildevents/berun:
+                bename: go_test
+                becommand: go test -v ./...
+  build:
+    executor: linuxgo
+    steps:
+      - buildevents/with_job_span:
+          steps:
+            - checkout
+            - run: echo "export VERSION_ID=${CIRCLE_TAG:-dev}" >> $BASH_ENV
+            - run: |
+                buildevents cmd $CIRCLE_WORKFLOW_ID $BUILDEVENTS_SPAN_ID go_install -- \
+                go install -ldflags "-X main.Version=${VERSION_ID}"
+            - run: mkdir -v artifacts; cp -v $GOPATH/bin/honeycomb-opentracing-proxy artifacts/
+            - persist_to_workspace:
+                root: artifacts
+                paths:
+                  - honeycomb-opentracing-proxy
+            - store_artifacts:
+                path: artifacts/
+
+  publish:
+    docker:
+      - image: cibuilds/github:0.12.2
+    steps:
+      - buildevents/with_job_span:
+          steps:
+            - attach_workspace:
+                at: artifacts
+            - run:
+                name: "Publish Release on GitHub"
+                command: |
+                  echo "about to publish to tag ${CIRCLE_TAG}"
+                  ls -l *
+                  ghr -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} ${CIRCLE_TAG} ./artifacts/honeycomb-opentracing-proxy
+
+workflows:
+  build:
+    jobs:
+      - setup:
+          filters:
+            tags:
+              only: /.*/
+      - watch:
+          requires:
+            - setup
+          filters:
+            tags:
+              only: /.*/
+      - test:
+          requires:
+            - setup
+          filters:
+            tags:
+              only: /.*/
+      - build:
+          requires:
+            - test
+          filters:
+            tags:
+              only: /.*/
+      - publish:
+          requires:
+            - build
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
