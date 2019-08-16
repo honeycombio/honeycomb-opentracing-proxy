@@ -1,3 +1,5 @@
+[![CircleCI](https://circleci.com/gh/honeycombio/honeycomb-opentracing-proxy.svg?style=svg)](https://circleci.com/gh/honeycombio/honeycomb-opentracing-proxy)
+
 `honeycomb-opentracing-proxy` is a drop-in compatible replacement for Zipkin.
 If your services are instrumented with OpenTracing and emit span data using
 Zipkin's wire format, then `honeycomb-opentracing-proxy` can receive that data
