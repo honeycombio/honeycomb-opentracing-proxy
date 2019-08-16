@@ -9,6 +9,32 @@ executors:
     docker:
       - image: circleci/golang:1.9
 
+commands:
+  go-build:
+    parameters:
+      os:
+        description: Target operating system
+        type: enum
+        enum: ["linux", "darwin"]
+        default: "linux"
+      arch:
+        description: Target architecture
+        type: enum
+        enum: ["386", "amd64"]
+        default: "amd64"
+    steps:
+      ## method 1 to send a command span
+      ## the raw buildevents binary is available in the $PATH but requires more arguments
+      ## don't use CGO so that this binary can run in alpine-linux containers
+      - run: |
+          GOOS=<< parameters.os >> \
+          GOARCH=<< parameters.arch >> \
+          CGO_ENABLED=0 \
+          buildevents cmd $CIRCLE_WORKFLOW_ID $BUILDEVENTS_SPAN_ID go_build -- \
+          go build -ldflags "-X main.Version=${CIRCLE_TAG}" \
+          -o $GOPATH/bin/honeycomb-opentracing-proxy-<< parameters.os >>-<< parameters.arch >> \
+          ./...
+
 jobs:
   setup:
     executor: linuxgo
@@ -33,21 +59,62 @@ jobs:
     executor: linuxgo
     steps:
       - checkout
+      - go-build:
+          os: linux
+          arch: amd64
+      - run: mkdir -v artifacts; cp -v $GOPATH/bin/honeycomb-opentracing-proxy-* artifacts/
+      - persist_to_workspace:
+          root: artifacts
+          paths:
+            - honeycomb-opentracing-proxy-*
+      - store_artifacts:
+          path: artifacts/
 
-      # specify any bash command here prefixed with `run: `
-      - run: go get -v -t -d ./...
-      - run: go test -v ./...
+  publish:
+    docker:
+      - image: cibuilds/github:0.12.2
+    steps:
+      - buildevents/with_job_span:
+          steps:
+            - attach_workspace:
+                at: artifacts
+            - run:
+                name: "Publish Release on GitHub"
+                command: |
+                  echo "about to publish to tag ${CIRCLE_TAG}"
+                  ls -l *
+                  ghr -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} ${CIRCLE_TAG} ./artifacts/honeycomb-opentracing-proxy-linux-amd64
 
 workflows:
   build:
     jobs:
-      - setup
+      - setup:
+          filters:
+            tags:
+              only: /.*/
       - watch:
           requires:
             - setup
+          filters:
+            tags:
+              only: /.*/
       - test:
           requires:
             - setup
+          filters:
+            tags:
+              only: /.*/
       - build:
           requires:
             - test
+          filters:
+            tags:
+              only: /.*/
+      - publish:
+          requires:
+            - build
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
