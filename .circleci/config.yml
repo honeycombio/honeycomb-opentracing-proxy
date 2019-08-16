@@ -58,17 +58,19 @@ jobs:
   build:
     executor: linuxgo
     steps:
-      - checkout
-      - go-build:
-          os: linux
-          arch: amd64
-      - run: mkdir -v artifacts; cp -v $GOPATH/bin/honeycomb-opentracing-proxy-* artifacts/
-      - persist_to_workspace:
-          root: artifacts
-          paths:
-            - honeycomb-opentracing-proxy-*
-      - store_artifacts:
-          path: artifacts/
+      - buildevents/with_job_span:
+          steps:
+            - checkout
+            - go-build:
+                os: linux
+                arch: amd64
+            - run: mkdir -v artifacts; cp -v $GOPATH/bin/honeycomb-opentracing-proxy-* artifacts/
+            - persist_to_workspace:
+                root: artifacts
+                paths:
+                  - honeycomb-opentracing-proxy-*
+            - store_artifacts:
+                path: artifacts/
 
   publish:
     docker:
