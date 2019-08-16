@@ -24,8 +24,6 @@ jobs:
       - buildevents/with_job_span:
           steps:
             - checkout
-            ## method 2 to send a command span
-            ## buildevent/berun is a circleci friendly way to create a buildevents command span
             - buildevents/berun:
                 bename: go_test
                 becommand: go test -v ./...
