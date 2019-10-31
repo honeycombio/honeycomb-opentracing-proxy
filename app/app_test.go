@@ -318,14 +318,14 @@ func TestHoneycombOutput(t *testing.T) {
 	assert.Equal(len(mockHoneycomb.Events()), 1)
 	assert.Equal(mockHoneycomb.Events()[0].Fields(),
 		map[string]interface{}{
-			"traceId":        "350565b6a90d4c8c",
+			"trace.trace_id": "350565b6a90d4c8c",
 			"name":           "persist",
-			"id":             "34472e70cb669b31",
-			"serviceName":    "poodle",
-			"hostIPv4":       "10.129.211.111",
+			"trace.span_id":  "34472e70cb669b31",
+			"service_name":   "poodle",
+			"host_ipv4":      "10.129.211.111",
 			"lc":             "poodle",
 			"responseLength": int64(136),
-			"durationMs":     0.192,
+			"duration_ms":    0.192,
 		})
 	assert.Equal(mockHoneycomb.Events()[0].Dataset, "test")
 }
@@ -400,13 +400,13 @@ func TestHoneycombSinkTagHandling(t *testing.T) {
 	assert.Equal(mockHoneycomb.Events()[0].SampleRate, uint(22))
 	assert.Equal(mockHoneycomb.Events()[0].Fields(),
 		map[string]interface{}{
-			"id":          "bb433fd338b2cecb",
-			"traceId":     "8fe5ac327a4a4a88",
-			"name":        "persist",
-			"hostIPv4":    "10.129.211.121",
-			"serviceName": "shepherd",
-			"durationMs":  0.222,
-			"lc":          "shepherd",
+			"trace.span_id":  "bb433fd338b2cecb",
+			"trace.trace_id": "8fe5ac327a4a4a88",
+			"name":           "persist",
+			"host_ipv4":      "10.129.211.121",
+			"service_name":   "shepherd",
+			"duration_ms":    0.222,
+			"lc":             "shepherd",
 		})
 
 	sampleSpan.BinaryAnnotations[3].Value = "-22"
@@ -467,7 +467,7 @@ func TestSampling(t *testing.T) {
 
 	sampledSpanCounts := make(map[string]int)
 	for _, ev := range mockHoneycomb.Events() {
-		sampledSpanCounts[ev.Fields()["traceId"].(string)]++
+		sampledSpanCounts[ev.Fields()["trace.trace_id"].(string)]++
 	}
 
 	// Check that we sent 3 out of 30 traces, and that each trace has a
