@@ -27,7 +27,7 @@ func (hs *HoneycombSink) Start() error {
 		hs.dropFieldsMap[v] = struct{}{}
 	}
 	versionStr := "1.0.1"
-	libhoney.UserAgentAddition = "honeycomb-opentracing-proxy" + versionStr
+	libhoney.UserAgentAddition = "honeycomb-opentracing-proxy/" + versionStr
 	libhoney.Init(libhoney.Config{
 		WriteKey: hs.Writekey,
 		Dataset:  hs.Dataset,
