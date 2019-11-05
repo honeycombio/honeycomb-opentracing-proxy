@@ -72,7 +72,7 @@ func convertThriftSpan(ts *zipkincore.Span) *Span {
 }
 
 func convertID(id int64) string {
-	return fmt.Sprintf("%x", id) // TODO is this right?
+	return fmt.Sprintf("%016x", uint64(id))
 }
 
 func convertIPv4(ip int32) string {
