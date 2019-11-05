@@ -13,7 +13,6 @@ you can explore single traces, and run queries over aggregated trace data.
 First, [sign up](https://honeycomb.io/signup) for a free Honeycomb trial
 account, and grab your write key from your [account page](https://ui.honeycomb.io/account).
 
-
 ### Installation
 
 If you have Go installed, you can clone this repository and build the
@@ -60,3 +59,7 @@ If your outbound HTTP traffic goes through an internal/corporate proxy server, y
 ```
 HTTPS_PROXY=<my proxy address>
 ```
+
+## Looking to contribute?
+
+Please see our [development guide](./DEVELOPMENT.md)
