@@ -26,7 +26,7 @@ imports:
   subpackages:
   - ext
   - log
-- name: github.com/Sirupsen/logrus
+- name: github.com/sirupsen/logrus
   version: d682213848ed68c0a260ca37d6dd5ace8423f5ba
 - name: github.com/uber-go/atomic
   version: 8474b86a5a6f79c443ce4b2992817ff32cf208b8

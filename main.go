@@ -9,7 +9,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/honeycombio/honeycomb-opentracing-proxy/app"
 	"github.com/honeycombio/honeycomb-opentracing-proxy/sinks"
 	flag "github.com/jessevdk/go-flags"
