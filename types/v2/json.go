@@ -8,7 +8,7 @@ import (
 	"github.com/honeycombio/honeycomb-opentracing-proxy/types"
 )
 
-type ZipkinV2JSONSpan struct {
+type ZipkinJSONSpan struct {
 	TraceID        string                 `json:"traceId"`
 	Name           string                 `json:"name"`
 	ID             string                 `json:"id"`
@@ -40,23 +40,23 @@ type RemoteEndpoint struct {
 	Port int    `json:"port"`
 }
 
-// DecodeJSONV2 reads an array of JSON-encoded spans from an io.Reader, and
+// DecodeJSON reads an array of JSON-encoded spans from an io.Reader, and
 // converts that array to a slice of Spans.
-func DecodeJSONV2(r io.Reader) ([]*types.Span, error) {
-	var jsonSpans []ZipkinV2JSONSpan
+func DecodeJSON(r io.Reader) ([]*types.Span, error) {
+	var jsonSpans []ZipkinJSONSpan
 	err := json.NewDecoder(r).Decode(&jsonSpans)
 	if err != nil {
 		return nil, err
 	}
 	spans := make([]*types.Span, len(jsonSpans))
 	for i, s := range jsonSpans {
-		spans[i] = convertV2JSONSpan(s)
+		spans[i] = convertJSONSpan(s)
 	}
 
 	return spans, nil
 }
 
-func convertV2JSONSpan(zs ZipkinV2JSONSpan) *types.Span {
+func convertJSONSpan(zs ZipkinJSONSpan) *types.Span {
 	traceIDAsInt, _ := strconv.ParseInt(zs.TraceID, 16, 64)
 	s := &types.Span{
 		CoreSpanMetadata: types.CoreSpanMetadata{

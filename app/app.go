@@ -51,7 +51,7 @@ func (a *App) handleSpans(w http.ResponseWriter, r *http.Request) {
 	var spans []*types.Span
 	switch contentType {
 	case "application/json":
-		spans, err = v1.DecodeV1JSON(bytes.NewReader(data))
+		spans, err = v1.DecodeJSON(bytes.NewReader(data))
 	case "application/x-thrift":
 		spans, err = v1.DecodeThrift(bytes.NewReader(data))
 	default:
