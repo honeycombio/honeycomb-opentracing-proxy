@@ -16,6 +16,7 @@ import (
 	"github.com/apache/thrift/lib/go/thrift"
 	"github.com/honeycombio/honeycomb-opentracing-proxy/sinks"
 	"github.com/honeycombio/honeycomb-opentracing-proxy/types"
+	v1 "github.com/honeycombio/honeycomb-opentracing-proxy/types/v1"
 	libhoney "github.com/honeycombio/libhoney-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/uber/jaeger/thrift-gen/zipkincore"
@@ -375,7 +376,7 @@ func TestHoneycombSinkTagHandling(t *testing.T) {
 		"duration": 222
 	}`
 
-	var sampleSpan types.ZipkinJSONSpan
+	var sampleSpan v1.ZipkinV1JSONSpan
 	err := json.Unmarshal([]byte(sampleSpanJSON), &sampleSpan)
 	assert.NoError(err)
 
@@ -391,7 +392,7 @@ func TestHoneycombSinkTagHandling(t *testing.T) {
 
 	a := &App{Sink: sink}
 
-	payload, err := json.Marshal([]types.ZipkinJSONSpan{sampleSpan})
+	payload, err := json.Marshal([]v1.ZipkinV1JSONSpan{sampleSpan})
 	assert.NoError(err)
 	w := handleGzipped(a, payload, "application/json")
 	assert.Equal(w.Code, http.StatusAccepted)
@@ -410,7 +411,7 @@ func TestHoneycombSinkTagHandling(t *testing.T) {
 		})
 
 	sampleSpan.BinaryAnnotations[3].Value = "-22"
-	payload, err = json.Marshal([]types.ZipkinJSONSpan{sampleSpan})
+	payload, err = json.Marshal([]v1.ZipkinV1JSONSpan{sampleSpan})
 	assert.NoError(err)
 	w = handleGzipped(a, payload, "application/json")
 	assert.Equal(w.Code, http.StatusAccepted)

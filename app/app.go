@@ -15,6 +15,7 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/honeycombio/honeycomb-opentracing-proxy/sinks"
 	"github.com/honeycombio/honeycomb-opentracing-proxy/types"
+	v1 "github.com/honeycombio/honeycomb-opentracing-proxy/types/v1"
 )
 
 type App struct {
@@ -50,9 +51,9 @@ func (a *App) handleSpans(w http.ResponseWriter, r *http.Request) {
 	var spans []*types.Span
 	switch contentType {
 	case "application/json":
-		spans, err = types.DecodeJSON(bytes.NewReader(data))
+		spans, err = v1.DecodeV1JSON(bytes.NewReader(data))
 	case "application/x-thrift":
-		spans, err = types.DecodeThrift(bytes.NewReader(data))
+		spans, err = v1.DecodeThrift(bytes.NewReader(data))
 	default:
 		logrus.WithField("contentType", contentType).Info("unknown content type")
 		w.WriteHeader(http.StatusBadRequest)

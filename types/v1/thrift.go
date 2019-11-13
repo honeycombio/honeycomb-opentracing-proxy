@@ -1,4 +1,4 @@
-package types
+package v1
 
 import (
 	"bytes"
@@ -9,13 +9,15 @@ import (
 	"net"
 	"time"
 
+	"github.com/honeycombio/honeycomb-opentracing-proxy/types"
+
 	"github.com/apache/thrift/lib/go/thrift"
 	"github.com/uber/jaeger/thrift-gen/zipkincore"
 )
 
-func convertThriftSpan(ts *zipkincore.Span) *Span {
-	s := &Span{
-		CoreSpanMetadata: CoreSpanMetadata{
+func convertThriftSpan(ts *zipkincore.Span) *types.Span {
+	s := &types.Span{
+		CoreSpanMetadata: types.CoreSpanMetadata{
 			TraceID:      convertID(ts.TraceID),
 			TraceIDAsInt: ts.TraceID,
 			Name:         ts.Name,
@@ -33,7 +35,7 @@ func convertThriftSpan(ts *zipkincore.Span) *Span {
 	}
 
 	if ts.Timestamp != nil {
-		s.Timestamp = convertTimestamp(*ts.Timestamp)
+		s.Timestamp = types.ConvertTimestamp(*ts.Timestamp)
 	} else {
 		s.Timestamp = time.Now().UTC()
 	}
@@ -99,7 +101,7 @@ func convertBinaryAnnotationValue(ba *zipkincore.BinaryAnnotation) interface{} {
 // DecodeThrift reads a list of encoded thrift spans from an io.Reader, and
 // converts that list to a slice of Spans.
 // The implementation is based on jaeger internals, but not exported there.
-func DecodeThrift(r io.Reader) ([]*Span, error) {
+func DecodeThrift(r io.Reader) ([]*types.Span, error) {
 	body, err := ioutil.ReadAll(r)
 	if err != nil {
 		return nil, err
@@ -116,7 +118,7 @@ func DecodeThrift(r io.Reader) ([]*Span, error) {
 
 	// We don't depend on the size returned by ReadListBegin to preallocate the array because it
 	// sometimes returns a nil error on bad input and provides an unreasonably large int for size
-	var spans []*Span
+	var spans []*types.Span
 	for i := 0; i < size; i++ {
 		zs := &zipkincore.Span{}
 		if err = zs.Read(transport); err != nil {
