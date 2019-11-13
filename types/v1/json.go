@@ -13,26 +13,26 @@ type ZipkinJSONSpan struct {
 	Name              string              `json:"name"`
 	ID                string              `json:"id"`
 	ParentID          string              `json:"parentId,omitempty"`
-	Annotations       []*AnnotationV1     `json:"annotations"`
+	Annotations       []*annotation       `json:"annotations"`
 	BinaryAnnotations []*binaryAnnotation `json:"binaryAnnotations"`
 	Debug             bool                `json:"debug,omitempty"`
 	Timestamp         int64               `json:"timestamp,omitempty"`
 	Duration          int64               `json:"duration,omitempty"`
 }
 
-type AnnotationV1 struct {
+type annotation struct {
 	Timestamp int64     `json:"timestamp"`
 	Value     string    `json:"value"`
-	Host      *Endpoint `json:"endpoint,omitempty"`
+	Host      *endpoint `json:"endpoint,omitempty"`
 }
 
 type binaryAnnotation struct {
 	Key      string      `json:"key"`
 	Value    interface{} `json:"value"`
-	Endpoint *Endpoint   `json:"endpoint,omitempty"`
+	Endpoint *endpoint   `json:"endpoint,omitempty"`
 }
 
-type Endpoint struct {
+type endpoint struct {
 	Ipv4        string `json:"ipv4"`
 	Port        int    `json:"port"`
 	ServiceName string `json:"serviceName"`
@@ -70,7 +70,7 @@ func convertJSONSpan(zs ZipkinJSONSpan) *types.Span {
 		BinaryAnnotations: make(map[string]interface{}, len(zs.BinaryAnnotations)),
 	}
 
-	var endpoint *Endpoint
+	var endpoint *endpoint
 	for _, ba := range zs.BinaryAnnotations {
 		if ba == nil {
 			continue

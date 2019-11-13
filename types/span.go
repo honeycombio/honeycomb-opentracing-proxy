@@ -13,7 +13,7 @@ import (
 //   values, respectively.
 type Span struct {
 	CoreSpanMetadata
-	Annotations       []*SpanAnnotation      `json:"annotations,omitempty"` // TODO lift annotation struct definition into this file
+	Annotations       []*annotation          `json:"annotations,omitempty"` // TODO lift annotation struct definition into this file
 	BinaryAnnotations map[string]interface{} `json:"binaryAnnotations,omitempty"`
 	Timestamp         time.Time              `json:"timestamp,omitempty"`
 }
@@ -34,13 +34,13 @@ type CoreSpanMetadata struct {
 	DurationMs   float64 `json:"durationMs,omitempty"`
 }
 
-type SpanAnnotation struct {
-	Timestamp int64         `json:"timestamp"`
-	Value     string        `json:"value"`
-	Host      *SpanEndpoint `json:"endpoint,omitempty"`
+type annotation struct {
+	Timestamp int64     `json:"timestamp"`
+	Value     string    `json:"value"`
+	Host      *endpoint `json:"endpoint,omitempty"`
 }
 
-type SpanEndpoint struct {
+type endpoint struct {
 	Ipv4        string `json:"ipv4"`
 	Port        int    `json:"port"`
 	ServiceName string `json:"serviceName"`

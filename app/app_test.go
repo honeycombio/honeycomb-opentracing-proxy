@@ -19,7 +19,6 @@ import (
 	v1 "github.com/honeycombio/honeycomb-opentracing-proxy/types/v1"
 	v2 "github.com/honeycombio/honeycomb-opentracing-proxy/types/v2"
 	libhoney "github.com/honeycombio/libhoney-go"
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/uber/jaeger/thrift-gen/zipkincore"
 )
@@ -37,11 +36,6 @@ func (ms *MockSink) Send(spans []*types.Span) error {
 
 func (ms *MockSink) Start() error { return nil }
 func (ms *MockSink) Stop() error  { return nil }
-
-func init() {
-	logrus.SetLevel(logrus.DebugLevel)
-	logrus.SetReportCaller(true)
-}
 
 func TestMissingJSONTimestampHandling_V1(t *testing.T) {
 	mockHoneycomb := &libhoney.MockOutput{}

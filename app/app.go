@@ -42,12 +42,6 @@ func (a *App) handleSpansV1(w http.ResponseWriter, r *http.Request) {
 
 	contentType := r.Header.Get("Content-Type")
 
-	logrus.WithFields(logrus.Fields{
-		"body":        r.Body,
-		"path":        r.URL.Path,
-		"contentType": contentType,
-	}).Debug("Received request")
-
 	if a.Mirror != nil {
 		err := a.Mirror.Send(payload{ContentType: contentType, Body: data})
 		if err != nil {
@@ -95,12 +89,6 @@ func (a *App) handleSpansV2(w http.ResponseWriter, r *http.Request) {
 	}
 
 	contentType := r.Header.Get("Content-Type")
-
-	logrus.WithFields(logrus.Fields{
-		"body":        r.Body,
-		"path":        r.URL.Path,
-		"contentType": contentType,
-	}).Debug("Received request")
 
 	if a.Mirror != nil {
 		err := a.Mirror.Send(payload{ContentType: contentType, Body: data})

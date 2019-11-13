@@ -14,28 +14,28 @@ type ZipkinJSONSpan struct {
 	ID             string                 `json:"id"`
 	ParentID       string                 `json:"parentId,omitempty"`
 	Kind           string                 `json:"kind,omitempty"`
-	LocalEndpoint  LocalEndpoint          `json:"localEndpoint,omitempty"`
-	RemoteEndpoint RemoteEndpoint         `json:"remoteEndpoint,omitempty"`
-	Annotations    []*AnnotationV2        `json:"annotation,omitemptys"`
+	LocalEndpoint  localEndpoint          `json:"localEndpoint,omitempty"`
+	RemoteEndpoint remoteEndpoint         `json:"remoteEndpoint,omitempty"`
+	Annotations    []*annotation          `json:"annotation,omitemptys"`
 	Tags           map[string]interface{} `json:"tags,omitempty"`
 	Debug          bool                   `json:"debug,omitempty"`
 	Timestamp      int64                  `json:"timestamp,omitempty"`
 	Duration       int64                  `json:"duration,omitempty"`
 }
 
-type AnnotationV2 struct {
+type annotation struct {
 	Timestamp int64           `json:"timestamp"`
 	Value     string          `json:"value"`
-	Host      *RemoteEndpoint `json:"endpoint,omitempty"`
+	Host      *remoteEndpoint `json:"endpoint,omitempty"`
 }
 
-type LocalEndpoint struct {
+type localEndpoint struct {
 	Ipv4        string `json:"ipv4"`
 	Port        int    `json:"port"`
 	ServiceName string `json:"serviceName"`
 }
 
-type RemoteEndpoint struct {
+type remoteEndpoint struct {
 	Ipv4 string `json:"ipv4"`
 	Port int    `json:"port"`
 }
@@ -82,7 +82,7 @@ func convertJSONSpan(zs ZipkinJSONSpan) *types.Span {
 
 	s.BinaryAnnotations["kind"] = zs.Kind
 
-	if (zs.LocalEndpoint != LocalEndpoint{}) {
+	if (zs.LocalEndpoint != localEndpoint{}) {
 		s.HostIPv4 = zs.LocalEndpoint.Ipv4
 		s.ServiceName = zs.LocalEndpoint.ServiceName
 		s.Port = zs.LocalEndpoint.Port
