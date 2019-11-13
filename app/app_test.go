@@ -19,6 +19,7 @@ import (
 	v1 "github.com/honeycombio/honeycomb-opentracing-proxy/types/v1"
 	v2 "github.com/honeycombio/honeycomb-opentracing-proxy/types/v2"
 	libhoney "github.com/honeycombio/libhoney-go"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/uber/jaeger/thrift-gen/zipkincore"
 )
@@ -36,6 +37,11 @@ func (ms *MockSink) Send(spans []*types.Span) error {
 
 func (ms *MockSink) Start() error { return nil }
 func (ms *MockSink) Stop() error  { return nil }
+
+func init() {
+	logrus.SetLevel(logrus.DebugLevel)
+	logrus.SetReportCaller(true)
+}
 
 func TestMissingJSONTimestampHandling_V1(t *testing.T) {
 	mockHoneycomb := &libhoney.MockOutput{}
@@ -371,13 +377,13 @@ func TestHoneycombOutput_V2(t *testing.T) {
 				"parentId":    "",
 				"kind":		   "SERVER",
 				"localEndpoint": {
-					"serviceName": "poodle"
+					"serviceName": "poodle",
 					"ipv4": "10.129.211.111"
-				}
+				},
 				"tags": {
 					"lc": "poodle",
 					"responseLength": 136
-				}
+				},
 				"timestamp":  1506629747288651,
 				"duration": 192
 			}]`
@@ -385,18 +391,17 @@ func TestHoneycombOutput_V2(t *testing.T) {
 	w := handleGzippedV2(a, []byte(jsonPayload), "application/json")
 	assert.Equal(w.Code, http.StatusAccepted)
 	assert.Equal(len(mockHoneycomb.Events()), 1)
-	assert.Equal(mockHoneycomb.Events()[0].Fields(),
-		map[string]interface{}{
-			"traceId":        "350565b6a90d4c8c",
-			"name":           "persist",
-			"id":             "34472e70cb669b31",
-			"serviceName":    "poodle",
-			"hostIPv4":       "10.129.211.111",
-			"lc":             "poodle",
-			"responseLength": int64(136),
-			"durationMs":     0.192,
-			"kind":           "SERVER",
-		})
+	assert.Equal(map[string]interface{}{
+		"traceId":        "350565b6a90d4c8c",
+		"name":           "persist",
+		"id":             "34472e70cb669b31",
+		"serviceName":    "poodle",
+		"hostIPv4":       "10.129.211.111",
+		"lc":             "poodle",
+		"responseLength": float64(136),
+		"durationMs":     0.192,
+		"kind":           "SERVER",
+	}, mockHoneycomb.Events()[0].Fields())
 	assert.Equal(mockHoneycomb.Events()[0].Dataset, "test")
 }
 
@@ -496,16 +501,17 @@ func TestHoneycombSinkTagHandling_V2(t *testing.T) {
 		"name":        "persist",
 		"id":          "bb433fd338b2cecb",
 		"parentId":    "",
+		"kind":        "CONSUMER",
 		"localEndpoint": {
-			"serviceName": "shepherd"
+			"serviceName": "shepherd",
 			"ipv4": "10.129.211.121"
-		}
+		},
 		"tags": {
 			"lc": "shepherd",
 			"keyToDrop": "secret",
 			"honeycomb.dataset": "write-traces",
 			"honeycomb.samplerate": 22
-		}
+		},
 		"timestamp":  1506629747288651,
 		"duration": 222
 	}`
@@ -532,18 +538,20 @@ func TestHoneycombSinkTagHandling_V2(t *testing.T) {
 
 	assert.Equal(mockHoneycomb.Events()[0].Dataset, "write-traces")
 	assert.Equal(mockHoneycomb.Events()[0].SampleRate, uint(22))
-	assert.Equal(mockHoneycomb.Events()[0].Fields(),
-		map[string]interface{}{
-			"id":          "bb433fd338b2cecb",
-			"traceId":     "8fe5ac327a4a4a88",
-			"name":        "persist",
-			"hostIPv4":    "10.129.211.121",
-			"serviceName": "shepherd",
-			"durationMs":  0.222,
-			"lc":          "shepherd",
-		})
+	assert.Equal(map[string]interface{}{
+		"id":          "bb433fd338b2cecb",
+		"traceId":     "8fe5ac327a4a4a88",
+		"name":        "persist",
+		"hostIPv4":    "10.129.211.121",
+		"serviceName": "shepherd",
+		"durationMs":  0.222,
+		"lc":          "shepherd",
+		"kind":        "CONSUMER",
+	}, mockHoneycomb.Events()[0].Fields())
 
-	//sampleSpan.Tags = "-22" I think I don't need this
+	// set samplerate to -22
+	sampleSpan.Tags["honeycomb.samplerate"] = -22
+
 	payload, err = json.Marshal([]v2.ZipkinJSONSpan{sampleSpan})
 	assert.NoError(err)
 	w = handleGzippedV2(a, payload, "application/json")
@@ -638,40 +646,46 @@ func newMockDownstream() *mockDownstream {
 }
 
 func handleV1(a *App, payload []byte, contentType string) *httptest.ResponseRecorder {
-	return handle(a, payload, "/api/v1/spans", contentType)
-}
-
-func handleV2(a *App, payload []byte, contentType string) *httptest.ResponseRecorder {
-	return handle(a, payload, "/api/v2/spans", contentType)
-}
-
-func handleGzippedV1(a *App, payload []byte, contentType string) *httptest.ResponseRecorder {
-	return handleGzipped(a, payload, "/api/v1/spans", contentType)
-}
-
-func handleGzippedV2(a *App, payload []byte, contentType string) *httptest.ResponseRecorder {
-	return handleGzipped(a, payload, "/api/v2/spans", contentType)
-}
-
-func handle(a *App, payload []byte, path, contentType string) *httptest.ResponseRecorder {
-	r := httptest.NewRequest("POST", path, bytes.NewReader(payload))
+	r := httptest.NewRequest("POST", "/api/v1/spans", bytes.NewReader(payload))
 	r.Header.Add("Content-Type", contentType)
 	w := httptest.NewRecorder()
-	a.handleSpans(w, r)
+	a.handleSpansV1(w, r)
 	return w
 }
 
-func handleGzipped(a *App, payload []byte, path, contentType string) *httptest.ResponseRecorder {
+func handleV2(a *App, payload []byte, contentType string) *httptest.ResponseRecorder {
+	r := httptest.NewRequest("POST", "/api/v2/spans", bytes.NewReader(payload))
+	r.Header.Add("Content-Type", contentType)
+	w := httptest.NewRecorder()
+	a.handleSpansV2(w, r)
+	return w
+}
+
+func handleGzippedV1(a *App, payload []byte, contentType string) *httptest.ResponseRecorder {
 	var compressedPayload bytes.Buffer
 	zw := gzip.NewWriter(&compressedPayload)
 	zw.Write(payload)
 	zw.Close()
 
-	r := httptest.NewRequest("POST", path, &compressedPayload)
+	r := httptest.NewRequest("POST", "/api/v1/spans", &compressedPayload)
 	r.Header.Add("Content-Encoding", "gzip")
 	r.Header.Add("Content-Type", contentType)
 	w := httptest.NewRecorder()
-	ungzipWrap(a.handleSpans)(w, r)
+	ungzipWrap(a.handleSpansV1)(w, r)
+	return w
+}
+
+func handleGzippedV2(a *App, payload []byte, contentType string) *httptest.ResponseRecorder {
+	var compressedPayload bytes.Buffer
+	zw := gzip.NewWriter(&compressedPayload)
+	zw.Write(payload)
+	zw.Close()
+
+	r := httptest.NewRequest("POST", "/api/v2/spans", &compressedPayload)
+	r.Header.Add("Content-Encoding", "gzip")
+	r.Header.Add("Content-Type", contentType)
+	w := httptest.NewRecorder()
+	ungzipWrap(a.handleSpansV2)(w, r)
 	return w
 }
 

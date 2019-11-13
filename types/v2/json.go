@@ -68,17 +68,25 @@ func convertJSONSpan(zs ZipkinJSONSpan) *types.Span {
 			Debug:        zs.Debug,
 			DurationMs:   float64(zs.Duration) / 1000.,
 		},
-		Timestamp:         types.ConvertTimestamp(zs.Timestamp),
-		BinaryAnnotations: zs.Tags,
+		Timestamp: types.ConvertTimestamp(zs.Timestamp),
+
+		// this is needed to allocate the memory for BinaryAnnotations
+		// simply doing BinaryAnnotations: zs.Tags might cause a null pointer
+		// in case zs.Tags is null
+		BinaryAnnotations: make(map[string]interface{}, len(zs.Tags)),
 	}
+
+	for k, v := range zs.Tags {
+		s.BinaryAnnotations[k] = v
+	}
+
+	s.BinaryAnnotations["kind"] = zs.Kind
 
 	if (zs.LocalEndpoint != LocalEndpoint{}) {
 		s.HostIPv4 = zs.LocalEndpoint.Ipv4
 		s.ServiceName = zs.LocalEndpoint.ServiceName
 		s.Port = zs.LocalEndpoint.Port
 	}
-
-	s.BinaryAnnotations["kind"] = zs.Kind
 
 	// TODO: do something with annotations
 	return s

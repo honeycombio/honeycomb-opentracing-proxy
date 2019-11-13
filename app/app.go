@@ -16,6 +16,7 @@ import (
 	"github.com/honeycombio/honeycomb-opentracing-proxy/sinks"
 	"github.com/honeycombio/honeycomb-opentracing-proxy/types"
 	v1 "github.com/honeycombio/honeycomb-opentracing-proxy/types/v1"
+	v2 "github.com/honeycombio/honeycomb-opentracing-proxy/types/v2"
 )
 
 type App struct {
@@ -25,11 +26,11 @@ type App struct {
 	Mirror *Mirror
 }
 
-// handleSpans handles the /api/v1/spans POST endpoint. It decodes the request
+// handleSpansV1 handles the /api/v1/spans POST endpoint. It decodes the request
 // body and normalizes it to a slice of types.Span instances. The Sink
 // handles that slice. The Mirror, if configured, takes the request body
 // verbatim and sends it to another host.
-func (a *App) handleSpans(w http.ResponseWriter, r *http.Request) {
+func (a *App) handleSpansV1(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
 	data, err := ioutil.ReadAll(r.Body)
@@ -40,6 +41,12 @@ func (a *App) handleSpans(w http.ResponseWriter, r *http.Request) {
 	}
 
 	contentType := r.Header.Get("Content-Type")
+
+	logrus.WithFields(logrus.Fields{
+		"body":        r.Body,
+		"path":        r.URL.Path,
+		"contentType": contentType,
+	}).Debug("Received request")
 
 	if a.Mirror != nil {
 		err := a.Mirror.Send(payload{ContentType: contentType, Body: data})
@@ -54,6 +61,58 @@ func (a *App) handleSpans(w http.ResponseWriter, r *http.Request) {
 		spans, err = v1.DecodeJSON(bytes.NewReader(data))
 	case "application/x-thrift":
 		spans, err = v1.DecodeThrift(bytes.NewReader(data))
+	default:
+		logrus.WithField("contentType", contentType).Info("unknown content type")
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("unknown content type"))
+		return
+	}
+	if err != nil {
+		logrus.WithError(err).WithField("type", contentType).Info("error unmarshaling spans")
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("error unmarshaling span data"))
+		return
+	}
+
+	if err := a.Sink.Send(spans); err != nil {
+		logrus.WithError(err).Info("error forwarding spans")
+	}
+	w.WriteHeader(http.StatusAccepted)
+}
+
+// handleSpansV2 handles the /api/v2/spans POST endpoint. It decodes the request
+// body and normalizes it to a slice of types.Span instances. The Sink
+// handles that slice. The Mirror, if configured, takes the request body
+// verbatim and sends it to another host.
+func (a *App) handleSpansV2(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
+
+	data, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		logrus.WithError(err).Info("Error reading request body")
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("error reading request"))
+	}
+
+	contentType := r.Header.Get("Content-Type")
+
+	logrus.WithFields(logrus.Fields{
+		"body":        r.Body,
+		"path":        r.URL.Path,
+		"contentType": contentType,
+	}).Debug("Received request")
+
+	if a.Mirror != nil {
+		err := a.Mirror.Send(payload{ContentType: contentType, Body: data})
+		if err != nil {
+			logrus.WithError(err).Info("Error mirroring data")
+		}
+	}
+
+	var spans []*types.Span
+	switch contentType {
+	case "application/json":
+		spans, err = v2.DecodeJSON(bytes.NewReader(data))
 	default:
 		logrus.WithField("contentType", contentType).Info("unknown content type")
 		w.WriteHeader(http.StatusBadRequest)
@@ -103,7 +162,8 @@ func ungzipWrap(hf func(http.ResponseWriter, *http.Request)) func(http.ResponseW
 
 func (a *App) Start() error {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/api/v1/spans", ungzipWrap(a.handleSpans))
+	mux.HandleFunc("/api/v1/spans", ungzipWrap(a.handleSpansV1))
+	mux.HandleFunc("/api/v2/spans", ungzipWrap(a.handleSpansV2))
 
 	a.server = &http.Server{
 		Addr:    a.Port,
