@@ -24,6 +24,8 @@ func DecodeJSON(r io.Reader) ([]*types.Span, error) {
 	return spans, nil
 }
 
+// ZipkinJSONSpan represents the Zipkin V1 Span object. See
+// https://github.com/openzipkin/zipkin-api/blob/master/zipkin-api.yaml
 type ZipkinJSONSpan struct {
 	TraceID           string              `json:"traceId"`
 	Name              string              `json:"name"`

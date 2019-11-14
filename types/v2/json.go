@@ -8,6 +8,8 @@ import (
 	"github.com/honeycombio/honeycomb-opentracing-proxy/types"
 )
 
+// ZipkinJSONSpan represents the Zipkin V2 Span object. See
+// https://github.com/openzipkin/zipkin-api/blob/master/zipkin2-api.yaml
 type ZipkinJSONSpan struct {
 	TraceID        string                 `json:"traceId"`
 	Name           string                 `json:"name"`
