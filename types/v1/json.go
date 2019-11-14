@@ -8,36 +8,6 @@ import (
 	"github.com/honeycombio/honeycomb-opentracing-proxy/types"
 )
 
-type ZipkinJSONSpan struct {
-	TraceID           string              `json:"traceId"`
-	Name              string              `json:"name"`
-	ID                string              `json:"id"`
-	ParentID          string              `json:"parentId,omitempty"`
-	Annotations       []*annotation       `json:"annotations"`
-	BinaryAnnotations []*binaryAnnotation `json:"binaryAnnotations"`
-	Debug             bool                `json:"debug,omitempty"`
-	Timestamp         int64               `json:"timestamp,omitempty"`
-	Duration          int64               `json:"duration,omitempty"`
-}
-
-type annotation struct {
-	Timestamp int64     `json:"timestamp"`
-	Value     string    `json:"value"`
-	Host      *endpoint `json:"endpoint,omitempty"`
-}
-
-type binaryAnnotation struct {
-	Key      string      `json:"key"`
-	Value    interface{} `json:"value"`
-	Endpoint *endpoint   `json:"endpoint,omitempty"`
-}
-
-type endpoint struct {
-	Ipv4        string `json:"ipv4"`
-	Port        int    `json:"port"`
-	ServiceName string `json:"serviceName"`
-}
-
 // DecodeJSON reads an array of JSON-encoded spans from an io.Reader, and
 // converts that array to a slice of Spans.
 func DecodeJSON(r io.Reader) ([]*types.Span, error) {
@@ -54,6 +24,18 @@ func DecodeJSON(r io.Reader) ([]*types.Span, error) {
 	return spans, nil
 }
 
+type ZipkinJSONSpan struct {
+	TraceID           string              `json:"traceId"`
+	Name              string              `json:"name"`
+	ID                string              `json:"id"`
+	ParentID          string              `json:"parentId,omitempty"`
+	Annotations       []*Annotation       `json:"annotations"`
+	BinaryAnnotations []*binaryAnnotation `json:"binaryAnnotations"`
+	Debug             bool                `json:"debug,omitempty"`
+	Timestamp         int64               `json:"timestamp,omitempty"`
+	Duration          int64               `json:"duration,omitempty"`
+}
+
 func convertJSONSpan(zs ZipkinJSONSpan) *types.Span {
 	traceIDAsInt, _ := strconv.ParseInt(zs.TraceID, 16, 64)
 	s := &types.Span{
@@ -64,13 +46,13 @@ func convertJSONSpan(zs ZipkinJSONSpan) *types.Span {
 			ID:           zs.ID,
 			ParentID:     zs.ParentID,
 			Debug:        zs.Debug,
-			DurationMs:   float64(zs.Duration) / 1000.,
+			DurationMs:   float64(zs.Duration) / 1000.0,
 		},
 		Timestamp:         types.ConvertTimestamp(zs.Timestamp),
 		BinaryAnnotations: make(map[string]interface{}, len(zs.BinaryAnnotations)),
 	}
 
-	var endpoint *endpoint
+	var endpoint *Endpoint
 	for _, ba := range zs.BinaryAnnotations {
 		if ba == nil {
 			continue
@@ -106,31 +88,38 @@ func convertJSONSpan(zs ZipkinJSONSpan) *types.Span {
 	return s
 }
 
-// guessAnnotationType takes a value and, if it is a string, turns it into a bool,
-// int64 or float64 value when possible. This is a workaround for the fact that
-// Zipkin v1 BinaryAnnotation values are always transmitted as strings.
+type Annotation struct {
+	Timestamp int64     `json:"timestamp"`
+	Value     string    `json:"value"`
+	Host      *Endpoint `json:"endpoint,omitempty"`
+}
+
+type binaryAnnotation struct {
+	Key      string    `json:"key"`
+	Value    string    `json:"value"`
+	Endpoint *Endpoint `json:"endpoint,omitempty"`
+}
+
+type Endpoint struct {
+	Ipv4        string `json:"ipv4"`
+	Port        int    `json:"port"`
+	ServiceName string `json:"serviceName"`
+}
+
+// guessAnnotationType takes a string value and turns it into a bool, int64 or
+// float64 value if possible. This is a workaround for the fact that Zipkin
+// BinaryAnnotation values are always transmitted as strings.
 // (See e.g. the Zipkin API spec here:
 // https://github.com/openzipkin/zipkin-api/blob/72280f3/zipkin-api.yaml#L235-L245)
-//
-// However it considers the possibility that the value is not a string in case the
-// BinaryAnnotation does not implement the Zipkin API v1 spec. In this case it
-// will just return the same value, without modifying it. See this issue
-// for such an example:
-// https://github.com/honeycombio/honeycomb-opentracing-proxy/issues/37
-func guessAnnotationType(v interface{}) interface{} {
-	switch v.(type) {
-	default:
-		return v
-	case string:
-		if v.(string) == "false" {
-			return false
-		} else if v.(string) == "true" {
-			return true
-		} else if intVal, err := strconv.ParseInt(v.(string), 10, 64); err == nil {
-			return intVal
-		} else if floatVal, err := strconv.ParseFloat(v.(string), 64); err == nil {
-			return floatVal
-		}
+func guessAnnotationType(v string) interface{} {
+	if v == "false" {
+		return false
+	} else if v == "true" {
+		return true
+	} else if intVal, err := strconv.ParseInt(v, 10, 64); err == nil {
+		return intVal
+	} else if floatVal, err := strconv.ParseFloat(v, 64); err == nil {
+		return floatVal
 	}
 
 	return v

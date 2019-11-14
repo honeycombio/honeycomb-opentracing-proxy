@@ -13,8 +13,21 @@ import (
 //   values, respectively.
 type Span struct {
 	CoreSpanMetadata
+	Annotations       []*annotation          `json:"annotations,omitempty"` // TODO lift annotation struct definition into this file
 	BinaryAnnotations map[string]interface{} `json:"binaryAnnotations,omitempty"`
 	Timestamp         time.Time              `json:"timestamp,omitempty"`
+}
+
+type annotation struct {
+	Timestamp int64     `json:"timestamp"`
+	Value     string    `json:"value"`
+	Host      *endpoint `json:"endpoint,omitempty"`
+}
+
+type endpoint struct {
+	Ipv4        string `json:"ipv4"`
+	Port        int    `json:"port"`
+	ServiceName string `json:"serviceName"`
 }
 
 // CoreSpanMetadata is the subset of span data that can be added directly into

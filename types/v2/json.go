@@ -16,7 +16,7 @@ type ZipkinJSONSpan struct {
 	Kind           string                 `json:"kind,omitempty"`
 	LocalEndpoint  localEndpoint          `json:"localEndpoint,omitempty"`
 	RemoteEndpoint remoteEndpoint         `json:"remoteEndpoint,omitempty"`
-	Annotations    []*annotation          `json:"annotation,omitemptys"`
+	Annotations    []*annotation          `json:"annotation,omitempty"`
 	Tags           map[string]interface{} `json:"tags,omitempty"`
 	Debug          bool                   `json:"debug,omitempty"`
 	Timestamp      int64                  `json:"timestamp,omitempty"`
@@ -66,12 +66,12 @@ func convertJSONSpan(zs ZipkinJSONSpan) *types.Span {
 			ID:           zs.ID,
 			ParentID:     zs.ParentID,
 			Debug:        zs.Debug,
-			DurationMs:   float64(zs.Duration) / 1000.,
+			DurationMs:   float64(zs.Duration) / 1000.0,
 		},
 		Timestamp: types.ConvertTimestamp(zs.Timestamp),
 
 		// this is needed to allocate the memory for BinaryAnnotations
-		// simply doing BinaryAnnotations: zs.Tags might cause a null pointer
+		// simply doing `BinaryAnnotations: zs.Tags` might cause a null pointer
 		// in case zs.Tags is null
 		BinaryAnnotations: make(map[string]interface{}, len(zs.Tags)),
 	}
