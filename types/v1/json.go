@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io"
 	"strconv"
+	"time"
 
 	"github.com/honeycombio/honeycomb-opentracing-proxy/types"
 )
@@ -48,7 +49,7 @@ func convertJSONSpan(zs ZipkinJSONSpan) *types.Span {
 			ID:           zs.ID,
 			ParentID:     zs.ParentID,
 			Debug:        zs.Debug,
-			DurationMs:   float64(zs.Duration) / 1000.0,
+			DurationMs:   float64(zs.Duration) / float64(time.Microsecond),
 		},
 		Timestamp:         types.ConvertTimestamp(zs.Timestamp),
 		BinaryAnnotations: make(map[string]interface{}, len(zs.BinaryAnnotations)),
