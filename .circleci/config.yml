@@ -4,6 +4,11 @@ orbs:
   buildevents: honeycombio/buildevents@0.2.3
 
 executors:
+  docker-publisher:
+    environment:
+      IMAGE_NAME: honeycombio/honeycomb-opentracing-proxy
+    docker:
+      - image: circleci/buildpack-deps
   linuxgo:
     working_directory: /go/src/github.com/honeycombio/honeycomb-opentracing-proxy
     docker:
@@ -44,7 +49,6 @@ jobs:
                   - honeycomb-opentracing-proxy
             - store_artifacts:
                 path: artifacts/
-
   publish:
     docker:
       - image: cibuilds/github:0.12.2
@@ -59,6 +63,24 @@ jobs:
                   echo "about to publish to tag ${CIRCLE_TAG}"
                   ls -l *
                   ghr -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} ${CIRCLE_TAG} ./artifacts/honeycomb-opentracing-proxy
+  publish-docker-tag:
+    executor: docker-publisher
+    steps:
+      - buildevents/with_job_span:
+          steps:
+            - checkout
+            - setup_remote_docker
+            - run:
+                name: Build Docker image
+                command: docker build -t $IMAGE_NAME:latest .
+            - run:
+                name: Publish Docker Image to Docker Hub
+                command: |
+                  echo "$DOCKERHUB_PASS" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+                  IMAGE_TAG=${CIRCLE_TAG/v/''}
+                  docker tag $IMAGE_NAME:latest $IMAGE_NAME:$IMAGE_TAG
+                  docker push $IMAGE_NAME:latest
+                  docker push $IMAGE_NAME:$IMAGE_TAG
 
 workflows:
   build:
@@ -86,6 +108,14 @@ workflows:
             tags:
               only: /.*/
       - publish:
+          requires:
+            - build
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
+      - publish-docker-tag:
           requires:
             - build
           filters:
