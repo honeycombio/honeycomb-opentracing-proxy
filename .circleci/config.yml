@@ -113,7 +113,7 @@ workflows:
               only: /^v.*/
             branches:
               ignore: /.*/
-      - publish-docker:
+      - publish-docker-tag:
           requires:
             - build
           filters:
