@@ -62,4 +62,4 @@ HTTPS_PROXY=<my proxy address>
 
 ## Looking to contribute?
 
-Please see our [development guide](./DEVELOPMENT.md)
+Please see our [development guide](./DEVELOPMENT.MD)
