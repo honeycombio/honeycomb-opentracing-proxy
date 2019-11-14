@@ -72,7 +72,7 @@ func convertJSONSpan(zs ZipkinJSONSpan) *types.Span {
 		if ba.Endpoint != nil {
 			endpoint = ba.Endpoint
 		}
-		s.BinaryAnnotations[ba.Key] = guessAnnotationType(ba.Value)
+		s.BinaryAnnotations[ba.Key] = types.GuessAnnotationType(ba.Value)
 	}
 	for _, a := range zs.Annotations {
 		// TODO: do more with annotations (i.e., point-in-time logs within a span)
@@ -106,23 +106,4 @@ type Endpoint struct {
 	Ipv4        string `json:"ipv4"`
 	Port        int    `json:"port"`
 	ServiceName string `json:"serviceName"`
-}
-
-// guessAnnotationType takes a string value and turns it into a bool, int64 or
-// float64 value if possible. This is a workaround for the fact that Zipkin
-// BinaryAnnotation values are always transmitted as strings.
-// (See e.g. the Zipkin API spec here:
-// https://github.com/openzipkin/zipkin-api/blob/72280f3/zipkin-api.yaml#L235-L245)
-func guessAnnotationType(v string) interface{} {
-	if v == "false" {
-		return false
-	} else if v == "true" {
-		return true
-	} else if intVal, err := strconv.ParseInt(v, 10, 64); err == nil {
-		return intVal
-	} else if floatVal, err := strconv.ParseFloat(v, 64); err == nil {
-		return floatVal
-	}
-
-	return v
 }

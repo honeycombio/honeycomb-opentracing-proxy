@@ -1,6 +1,7 @@
 package types
 
 import (
+	"strconv"
 	"time"
 )
 
@@ -54,4 +55,23 @@ func ConvertTimestamp(tsMicros int64) time.Time {
 	}
 
 	return time.Unix(tsMicros/1000000, (tsMicros%1000000)*1000).UTC()
+}
+
+// GuessAnnotationType takes a string value and turns it into a bool, int64 or
+// float64 value if possible. This is a workaround for the fact that Zipkin
+// BinaryAnnotation values are always transmitted as strings.
+// (See e.g. the Zipkin API spec here:
+// https://github.com/openzipkin/zipkin-api/blob/72280f3/zipkin-api.yaml#L235-L245)
+func GuessAnnotationType(v string) interface{} {
+	if v == "false" {
+		return false
+	} else if v == "true" {
+		return true
+	} else if intVal, err := strconv.ParseInt(v, 10, 64); err == nil {
+		return intVal
+	} else if floatVal, err := strconv.ParseFloat(v, 64); err == nil {
+		return floatVal
+	}
+
+	return v
 }

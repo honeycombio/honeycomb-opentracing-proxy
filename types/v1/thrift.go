@@ -92,7 +92,7 @@ func convertBinaryAnnotationValue(ba *zipkincore.BinaryAnnotation) interface{} {
 		binary.Read(bytes.NewReader(ba.Value), binary.BigEndian, number)
 		return number
 	case zipkincore.AnnotationType_STRING:
-		return guessAnnotationType(string(ba.Value))
+		return types.GuessAnnotationType(string(ba.Value))
 	}
 
 	return ba.Value
