@@ -16,8 +16,8 @@ type ZipkinJSONSpan struct {
 	Kind           string                 `json:"kind,omitempty"`
 	LocalEndpoint  localEndpoint          `json:"localEndpoint,omitempty"`
 	RemoteEndpoint remoteEndpoint         `json:"remoteEndpoint,omitempty"`
-	Annotations    []*annotation          `json:"annotation,omitempty"`
-	Tags           map[string]interface{} `json:"tags,omitempty"`
+	Annotations    []*annotation          `json:"annotation"`
+	Tags           map[string]interface{} `json:"tags"`
 	Debug          bool                   `json:"debug,omitempty"`
 	Timestamp      int64                  `json:"timestamp,omitempty"`
 	Duration       int64                  `json:"duration,omitempty"`
