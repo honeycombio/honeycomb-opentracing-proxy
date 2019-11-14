@@ -8,7 +8,7 @@ executors:
     environment:
       IMAGE_NAME: honeycombio/honeycomb-opentracing-proxy
     docker:
-      - image: circleci/buildpack-deps:stretch
+      - image: circleci/buildpack-deps
   linuxgo:
     working_directory: /go/src/github.com/honeycombio/honeycomb-opentracing-proxy
     docker:
