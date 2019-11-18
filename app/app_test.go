@@ -37,7 +37,7 @@ func (ms *MockSink) Send(spans []*types.Span) error {
 func (ms *MockSink) Start() error { return nil }
 func (ms *MockSink) Stop() error  { return nil }
 
-func TestMissingJSONTimestampHandling_V1(t *testing.T) {
+func TestMissingJSONTimestampHandlingV1(t *testing.T) {
 	mockHoneycomb := &libhoney.MockOutput{}
 	assert := assert.New(t)
 	libhoney.Init(libhoney.Config{
@@ -59,7 +59,7 @@ func TestMissingJSONTimestampHandling_V1(t *testing.T) {
 	assert.WithinDuration(now, mockHoneycomb.Events()[0].Timestamp, 2*time.Second, "Missing timestamp should be populated")
 }
 
-func TestMissingJSONTimestampHandling_V2(t *testing.T) {
+func TestMissingJSONTimestampHandlingV2(t *testing.T) {
 	mockHoneycomb := &libhoney.MockOutput{}
 	assert := assert.New(t)
 	libhoney.Init(libhoney.Config{
@@ -300,7 +300,7 @@ func TestMirroringWhenDestinationUnavailable(t *testing.T) {
 
 }
 
-func TestHoneycombOutput_V1(t *testing.T) {
+func TestHoneycombOutputV1(t *testing.T) {
 	mockHoneycomb := &libhoney.MockOutput{}
 	assert := assert.New(t)
 	libhoney.Init(libhoney.Config{
@@ -354,7 +354,7 @@ func TestHoneycombOutput_V1(t *testing.T) {
 	assert.Equal(mockHoneycomb.Events()[0].Dataset, "test")
 }
 
-func TestHoneycombOutput_V2(t *testing.T) {
+func TestHoneycombOutputV2(t *testing.T) {
 	mockHoneycomb := &libhoney.MockOutput{}
 	assert := assert.New(t)
 	libhoney.Init(libhoney.Config{
@@ -399,7 +399,7 @@ func TestHoneycombOutput_V2(t *testing.T) {
 	assert.Equal(mockHoneycomb.Events()[0].Dataset, "test")
 }
 
-func TestHoneycombSinkTagHandling_V1(t *testing.T) {
+func TestHoneycombSinkTagHandlingV1(t *testing.T) {
 	assert := assert.New(t)
 	sampleSpanJSON := `{
 		"traceId":     "8fe5ac327a4a4a88",
@@ -488,7 +488,7 @@ func TestHoneycombSinkTagHandling_V1(t *testing.T) {
 	assert.Equal(mockHoneycomb.Events()[1].SampleRate, uint(1))
 }
 
-func TestHoneycombSinkTagHandling_V2(t *testing.T) {
+func TestHoneycombSinkTagHandlingV2(t *testing.T) {
 	assert := assert.New(t)
 	sampleSpanJSON := `{
 		"traceId":     "8fe5ac327a4a4a88",
