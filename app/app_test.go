@@ -225,9 +225,9 @@ func TestThriftRootSpans(t *testing.T) {
 	assert.Equal(w.Code, http.StatusAccepted)
 	assert.Equal(types.Span{
 		CoreSpanMetadata: types.CoreSpanMetadata{
-			TraceID:      "8ae",
+			TraceID:      "00000000000008ae",
 			TraceIDAsInt: 2222,
-			ID:           "8ae",
+			ID:           "00000000000008ae",
 			ParentID:     "",
 			Name:         "mySpan",
 		},
