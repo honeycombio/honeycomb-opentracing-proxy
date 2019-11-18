@@ -45,21 +45,29 @@ func convertTimestamp(tsMicros int64) time.Time {
 	return time.Unix(tsMicros/1000000, (tsMicros%1000000)*1000).UTC()
 }
 
-// guessAnnotationType takes a string value and turns it into a bool, int64 or
-// float64 value if possible. This is a workaround for the fact that Zipkin
-// BinaryAnnotation values are always transmitted as strings.
+// guessAnnotationType takes a value and, if it is a string, turns it into a bool,
+// int64 or float64 value when possible. This is a workaround for the fact that
+// Zipkin v1 BinaryAnnotation values are always transmitted as strings.
 // (See e.g. the Zipkin API spec here:
 // https://github.com/openzipkin/zipkin-api/blob/72280f3/zipkin-api.yaml#L235-L245)
-func guessAnnotationType(v string) interface{} {
-	if v == "false" {
+//
+// However it considers the possibility that the value is not a string in case the
+// BinaryAnnotation does not implement the Zipkin API v1 spec. In this case it
+// will just return the same value, without modifying it. See this issue
+// for such an example:
+// https://github.com/honeycombio/honeycomb-opentracing-proxy/issues/37
+func guessAnnotationType(v interface{}) interface{} {
+	strVal, ok := v.(string)
+	if !ok {
+		return v
+	} else if strVal == "false" {
 		return false
-	} else if v == "true" {
+	} else if strVal == "true" {
 		return true
-	} else if intVal, err := strconv.ParseInt(v, 10, 64); err == nil {
+	} else if intVal, err := strconv.ParseInt(strVal, 10, 64); err == nil {
 		return intVal
-	} else if floatVal, err := strconv.ParseFloat(v, 64); err == nil {
+	} else if floatVal, err := strconv.ParseFloat(strVal, 64); err == nil {
 		return floatVal
 	}
-
-	return v
+	return strVal
 }

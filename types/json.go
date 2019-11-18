@@ -93,9 +93,9 @@ type Annotation struct {
 }
 
 type binaryAnnotation struct {
-	Key      string    `json:"key"`
-	Value    string    `json:"value"`
-	Endpoint *Endpoint `json:"endpoint,omitempty"`
+	Key      string      `json:"key"`
+	Value    interface{} `json:"value"`
+	Endpoint *Endpoint   `json:"endpoint,omitempty"`
 }
 
 type Endpoint struct {
