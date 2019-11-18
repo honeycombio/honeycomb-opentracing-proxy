@@ -57,20 +57,17 @@ func convertTimestamp(tsMicros int64) time.Time {
 // for such an example:
 // https://github.com/honeycombio/honeycomb-opentracing-proxy/issues/37
 func guessAnnotationType(v interface{}) interface{} {
-	switch v.(type) {
-	default:
+	strVal, ok := v.(string)
+	if !ok {
 		return v
-	case string:
-		if v.(string) == "false" {
-			return false
-		} else if v.(string) == "true" {
-			return true
-		} else if intVal, err := strconv.ParseInt(v.(string), 10, 64); err == nil {
-			return intVal
-		} else if floatVal, err := strconv.ParseFloat(v.(string), 64); err == nil {
-			return floatVal
-		}
+	} else if strVal == "false" {
+		return false
+	} else if strVal == "true" {
+		return true
+	} else if intVal, err := strconv.ParseInt(strVal, 10, 64); err == nil {
+		return intVal
+	} else if floatVal, err := strconv.ParseFloat(strVal, 64); err == nil {
+		return floatVal
 	}
-
-	return v
+	return strVal
 }
