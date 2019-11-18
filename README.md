@@ -2,7 +2,7 @@
 
 `honeycomb-opentracing-proxy` is a drop-in compatible replacement for Zipkin.
 If your services are instrumented with OpenTracing and emit span data using
-Zipkin's wire format, then `honeycomb-opentracing-proxy` can receive that data
+Zipkin's Thrift or JSON formats, then `honeycomb-opentracing-proxy` can receive that data
 and forward it to the [Honeycomb](https://honeycomb.io) API. Using Honeycomb,
 you can explore single traces, and run queries over aggregated trace data.
 
