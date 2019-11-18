@@ -1,20 +1,23 @@
-package types
+package v1
 
 import (
 	"encoding/json"
 	"io"
 	"strconv"
+	"time"
+
+	"github.com/honeycombio/honeycomb-opentracing-proxy/types"
 )
 
 // DecodeJSON reads an array of JSON-encoded spans from an io.Reader, and
 // converts that array to a slice of Spans.
-func DecodeJSON(r io.Reader) ([]*Span, error) {
+func DecodeJSON(r io.Reader) ([]*types.Span, error) {
 	var jsonSpans []ZipkinJSONSpan
 	err := json.NewDecoder(r).Decode(&jsonSpans)
 	if err != nil {
 		return nil, err
 	}
-	spans := make([]*Span, len(jsonSpans))
+	spans := make([]*types.Span, len(jsonSpans))
 	for i, s := range jsonSpans {
 		spans[i] = convertJSONSpan(s)
 	}
@@ -22,6 +25,8 @@ func DecodeJSON(r io.Reader) ([]*Span, error) {
 	return spans, nil
 }
 
+// ZipkinJSONSpan represents the Zipkin V1 Span object. See
+// https://github.com/openzipkin/zipkin-api/blob/master/zipkin-api.yaml
 type ZipkinJSONSpan struct {
 	TraceID           string              `json:"traceId"`
 	Name              string              `json:"name"`
@@ -34,19 +39,19 @@ type ZipkinJSONSpan struct {
 	Duration          int64               `json:"duration,omitempty"`
 }
 
-func convertJSONSpan(zs ZipkinJSONSpan) *Span {
+func convertJSONSpan(zs ZipkinJSONSpan) *types.Span {
 	traceIDAsInt, _ := strconv.ParseInt(zs.TraceID, 16, 64)
-	s := &Span{
-		CoreSpanMetadata: CoreSpanMetadata{
+	s := &types.Span{
+		CoreSpanMetadata: types.CoreSpanMetadata{
 			TraceID:      zs.TraceID,
 			TraceIDAsInt: traceIDAsInt,
 			Name:         zs.Name,
 			ID:           zs.ID,
 			ParentID:     zs.ParentID,
 			Debug:        zs.Debug,
-			DurationMs:   float64(zs.Duration) / 1000.,
+			DurationMs:   float64(zs.Duration) / float64(time.Microsecond),
 		},
-		Timestamp:         convertTimestamp(zs.Timestamp),
+		Timestamp:         types.ConvertTimestamp(zs.Timestamp),
 		BinaryAnnotations: make(map[string]interface{}, len(zs.BinaryAnnotations)),
 	}
 
@@ -68,7 +73,7 @@ func convertJSONSpan(zs ZipkinJSONSpan) *Span {
 		if ba.Endpoint != nil {
 			endpoint = ba.Endpoint
 		}
-		s.BinaryAnnotations[ba.Key] = guessAnnotationType(ba.Value)
+		s.BinaryAnnotations[ba.Key] = types.GuessAnnotationType(ba.Value)
 	}
 	for _, a := range zs.Annotations {
 		// TODO: do more with annotations (i.e., point-in-time logs within a span)

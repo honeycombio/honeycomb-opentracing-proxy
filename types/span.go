@@ -14,9 +14,21 @@ import (
 //   values, respectively.
 type Span struct {
 	CoreSpanMetadata
-	Annotations       []*Annotation          `json:"annotations,omitempty"` // TODO lift annotation struct definition into this file
+	Annotations       []*annotation          `json:"annotations,omitempty"` // TODO lift annotation struct definition into this file
 	BinaryAnnotations map[string]interface{} `json:"binaryAnnotations,omitempty"`
 	Timestamp         time.Time              `json:"timestamp,omitempty"`
+}
+
+type annotation struct {
+	Timestamp int64     `json:"timestamp"`
+	Value     string    `json:"value"`
+	Host      *endpoint `json:"endpoint,omitempty"`
+}
+
+type endpoint struct {
+	Ipv4        string `json:"ipv4"`
+	Port        int    `json:"port"`
+	ServiceName string `json:"serviceName"`
 }
 
 // CoreSpanMetadata is the subset of span data that can be added directly into
@@ -35,9 +47,9 @@ type CoreSpanMetadata struct {
 	DurationMs   float64 `json:"durationMs,omitempty"`
 }
 
-// convertTimestamp turns a Zipkin timestamp (a Unix timestamp in microseconds)
+// ConvertTimestamp turns a Zipkin timestamp (a Unix timestamp in microseconds)
 // into a time.Time value.
-func convertTimestamp(tsMicros int64) time.Time {
+func ConvertTimestamp(tsMicros int64) time.Time {
 	if tsMicros == 0 {
 		return time.Now().UTC()
 	}
@@ -45,7 +57,7 @@ func convertTimestamp(tsMicros int64) time.Time {
 	return time.Unix(tsMicros/1000000, (tsMicros%1000000)*1000).UTC()
 }
 
-// guessAnnotationType takes a value and, if it is a string, turns it into a bool,
+// GuessAnnotationType takes a value and, if it is a string, turns it into a bool,
 // int64 or float64 value when possible. This is a workaround for the fact that
 // Zipkin v1 BinaryAnnotation values are always transmitted as strings.
 // (See e.g. the Zipkin API spec here:
@@ -56,7 +68,7 @@ func convertTimestamp(tsMicros int64) time.Time {
 // will just return the same value, without modifying it. See this issue
 // for such an example:
 // https://github.com/honeycombio/honeycomb-opentracing-proxy/issues/37
-func guessAnnotationType(v interface{}) interface{} {
+func GuessAnnotationType(v interface{}) interface{} {
 	strVal, ok := v.(string)
 	if !ok {
 		return v

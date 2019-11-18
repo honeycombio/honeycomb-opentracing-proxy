@@ -16,6 +16,8 @@ import (
 	"github.com/apache/thrift/lib/go/thrift"
 	"github.com/honeycombio/honeycomb-opentracing-proxy/sinks"
 	"github.com/honeycombio/honeycomb-opentracing-proxy/types"
+	v1 "github.com/honeycombio/honeycomb-opentracing-proxy/types/v1"
+	v2 "github.com/honeycombio/honeycomb-opentracing-proxy/types/v2"
 	libhoney "github.com/honeycombio/libhoney-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/uber/jaeger/thrift-gen/zipkincore"
@@ -35,7 +37,7 @@ func (ms *MockSink) Send(spans []*types.Span) error {
 func (ms *MockSink) Start() error { return nil }
 func (ms *MockSink) Stop() error  { return nil }
 
-func TestMissingJSONTimestampHandling(t *testing.T) {
+func TestMissingJSONTimestampHandlingV1(t *testing.T) {
 	mockHoneycomb := &libhoney.MockOutput{}
 	assert := assert.New(t)
 	libhoney.Init(libhoney.Config{
@@ -52,7 +54,29 @@ func TestMissingJSONTimestampHandling(t *testing.T) {
 			}]`
 
 	now := time.Now()
-	w := handleGzipped(a, []byte(jsonPayload), "application/json")
+	w := handleGzippedV1(a, []byte(jsonPayload), "application/json")
+	assert.Equal(w.Code, http.StatusAccepted)
+	assert.WithinDuration(now, mockHoneycomb.Events()[0].Timestamp, 2*time.Second, "Missing timestamp should be populated")
+}
+
+func TestMissingJSONTimestampHandlingV2(t *testing.T) {
+	mockHoneycomb := &libhoney.MockOutput{}
+	assert := assert.New(t)
+	libhoney.Init(libhoney.Config{
+		WriteKey: "test",
+		Dataset:  "test",
+		Output:   mockHoneycomb,
+	})
+	a := &App{Sink: &sinks.HoneycombSink{}}
+
+	jsonPayload := `[{
+				"traceId":     "350565b6a90d4c8c",
+				"name":        "persist",
+				"id":          "34472e70cb669b31"
+			}]`
+
+	now := time.Now()
+	w := handleGzippedV2(a, []byte(jsonPayload), "application/json")
 	assert.Equal(w.Code, http.StatusAccepted)
 	assert.WithinDuration(now, mockHoneycomb.Events()[0].Timestamp, 2*time.Second, "Missing timestamp should be populated")
 }
@@ -76,7 +100,7 @@ func TestMissingThriftTimestampHandling(t *testing.T) {
 	})
 
 	now := time.Now().UTC()
-	w := handleGzipped(a, thriftPayload, "application/x-thrift")
+	w := handleGzippedV1(a, thriftPayload, "application/x-thrift")
 	assert.Equal(w.Code, http.StatusAccepted)
 	assert.WithinDuration(now, mockHoneycomb.Events()[0].Timestamp, 10*time.Second, "Empty timestamp should be set to current")
 }
@@ -169,12 +193,12 @@ func TestThriftDecoding(t *testing.T) {
 	// verify with both zipped and ungzipped data
 	ms := &MockSink{}
 	a := &App{Sink: ms}
-	w := handleGzipped(a, data, "application/x-thrift")
+	w := handleGzippedV1(a, data, "application/x-thrift")
 	assert.Equal(w.Code, http.StatusAccepted)
 	assert.Equal(ms.spans[:4], expectedSpans)
 	ms = &MockSink{}
 	a = &App{Sink: ms}
-	w = handle(a, data, "application/x-thrift")
+	w = handleV1(a, data, "application/x-thrift")
 	assert.Equal(w.Code, http.StatusAccepted)
 	assert.Equal(ms.spans[:4], expectedSpans)
 }
@@ -197,7 +221,7 @@ func TestThriftRootSpans(t *testing.T) {
 	})
 	ms := &MockSink{}
 	a := &App{Sink: ms}
-	w := handle(a, body, "application/x-thrift")
+	w := handleV1(a, body, "application/x-thrift")
 	assert.Equal(w.Code, http.StatusAccepted)
 	assert.Equal(types.Span{
 		CoreSpanMetadata: types.CoreSpanMetadata{
@@ -240,7 +264,7 @@ func TestMirroring(t *testing.T) {
 
 	data, err := ioutil.ReadAll(testFile)
 	assert.NoError(err)
-	w := handleGzipped(a, data, "application/x-thrift")
+	w := handleGzippedV1(a, data, "application/x-thrift")
 	assert.Equal(w.Code, http.StatusAccepted)
 
 	mirror.Stop()
@@ -271,12 +295,12 @@ func TestMirroringWhenDestinationUnavailable(t *testing.T) {
 
 	data, err := ioutil.ReadAll(testFile)
 	assert.NoError(err)
-	w := handleGzipped(a, data, "application/x-thrift")
+	w := handleGzippedV1(a, data, "application/x-thrift")
 	assert.Equal(w.Code, http.StatusAccepted)
 
 }
 
-func TestHoneycombOutput(t *testing.T) {
+func TestHoneycombOutputV1(t *testing.T) {
 	mockHoneycomb := &libhoney.MockOutput{}
 	assert := assert.New(t)
 	libhoney.Init(libhoney.Config{
@@ -313,7 +337,7 @@ func TestHoneycombOutput(t *testing.T) {
 				"duration": 192
 			}]`
 
-	w := handleGzipped(a, []byte(jsonPayload), "application/json")
+	w := handleGzippedV1(a, []byte(jsonPayload), "application/json")
 	assert.Equal(w.Code, http.StatusAccepted)
 	assert.Equal(len(mockHoneycomb.Events()), 1)
 	assert.Equal(mockHoneycomb.Events()[0].Fields(),
@@ -330,7 +354,52 @@ func TestHoneycombOutput(t *testing.T) {
 	assert.Equal(mockHoneycomb.Events()[0].Dataset, "test")
 }
 
-func TestHoneycombSinkTagHandling(t *testing.T) {
+func TestHoneycombOutputV2(t *testing.T) {
+	mockHoneycomb := &libhoney.MockOutput{}
+	assert := assert.New(t)
+	libhoney.Init(libhoney.Config{
+		WriteKey: "test",
+		Dataset:  "test",
+		Output:   mockHoneycomb,
+	})
+	a := &App{Sink: &sinks.HoneycombSink{}}
+
+	jsonPayload := `[{
+				"traceId":     "350565b6a90d4c8c",
+				"name":        "persist",
+				"id":          "34472e70cb669b31",
+				"parentId":    "",
+				"kind":		   "SERVER",
+				"localEndpoint": {
+					"serviceName": "poodle",
+					"ipv4": "10.129.211.111"
+				},
+				"tags": {
+					"lc": "poodle",
+					"responseLength": 136
+				},
+				"timestamp":  1506629747288651,
+				"duration": 192
+			}]`
+
+	w := handleGzippedV2(a, []byte(jsonPayload), "application/json")
+	assert.Equal(w.Code, http.StatusAccepted)
+	assert.Equal(len(mockHoneycomb.Events()), 1)
+	assert.Equal(map[string]interface{}{
+		"traceId":        "350565b6a90d4c8c",
+		"name":           "persist",
+		"id":             "34472e70cb669b31",
+		"serviceName":    "poodle",
+		"hostIPv4":       "10.129.211.111",
+		"lc":             "poodle",
+		"responseLength": float64(136),
+		"durationMs":     0.192,
+		"kind":           "SERVER",
+	}, mockHoneycomb.Events()[0].Fields())
+	assert.Equal(mockHoneycomb.Events()[0].Dataset, "test")
+}
+
+func TestHoneycombSinkTagHandlingV1(t *testing.T) {
 	assert := assert.New(t)
 	sampleSpanJSON := `{
 		"traceId":     "8fe5ac327a4a4a88",
@@ -375,7 +444,7 @@ func TestHoneycombSinkTagHandling(t *testing.T) {
 		"duration": 222
 	}`
 
-	var sampleSpan types.ZipkinJSONSpan
+	var sampleSpan v1.ZipkinJSONSpan
 	err := json.Unmarshal([]byte(sampleSpanJSON), &sampleSpan)
 	assert.NoError(err)
 
@@ -391,9 +460,9 @@ func TestHoneycombSinkTagHandling(t *testing.T) {
 
 	a := &App{Sink: sink}
 
-	payload, err := json.Marshal([]types.ZipkinJSONSpan{sampleSpan})
+	payload, err := json.Marshal([]v1.ZipkinJSONSpan{sampleSpan})
 	assert.NoError(err)
-	w := handleGzipped(a, payload, "application/json")
+	w := handleGzippedV1(a, payload, "application/json")
 	assert.Equal(w.Code, http.StatusAccepted)
 
 	assert.Equal(mockHoneycomb.Events()[0].Dataset, "write-traces")
@@ -410,9 +479,76 @@ func TestHoneycombSinkTagHandling(t *testing.T) {
 		})
 
 	sampleSpan.BinaryAnnotations[3].Value = "-22"
-	payload, err = json.Marshal([]types.ZipkinJSONSpan{sampleSpan})
+	payload, err = json.Marshal([]v1.ZipkinJSONSpan{sampleSpan})
 	assert.NoError(err)
-	w = handleGzipped(a, payload, "application/json")
+	w = handleGzippedV1(a, payload, "application/json")
+	assert.Equal(w.Code, http.StatusAccepted)
+	libhoney.Close()
+	assert.Equal(mockHoneycomb.Events()[1].Dataset, "write-traces")
+	assert.Equal(mockHoneycomb.Events()[1].SampleRate, uint(1))
+}
+
+func TestHoneycombSinkTagHandlingV2(t *testing.T) {
+	assert := assert.New(t)
+	sampleSpanJSON := `{
+		"traceId":     "8fe5ac327a4a4a88",
+		"name":        "persist",
+		"id":          "bb433fd338b2cecb",
+		"parentId":    "",
+		"kind":        "CONSUMER",
+		"localEndpoint": {
+			"serviceName": "shepherd",
+			"ipv4": "10.129.211.121"
+		},
+		"tags": {
+			"lc": "shepherd",
+			"keyToDrop": "secret",
+			"honeycomb.dataset": "write-traces",
+			"honeycomb.samplerate": 22
+		},
+		"timestamp":  1506629747288651,
+		"duration": 222
+	}`
+	var sampleSpan v2.ZipkinJSONSpan
+	err := json.Unmarshal([]byte(sampleSpanJSON), &sampleSpan)
+	assert.NoError(err)
+
+	sink := &sinks.HoneycombSink{DropFields: []string{"keyToDrop"}}
+	sink.Start()
+
+	mockHoneycomb := &libhoney.MockOutput{}
+	libhoney.Init(libhoney.Config{
+		WriteKey: "test",
+		Dataset:  "test",
+		Output:   mockHoneycomb,
+	})
+
+	a := &App{Sink: sink}
+
+	payload, err := json.Marshal([]v2.ZipkinJSONSpan{sampleSpan})
+	assert.NoError(err)
+	w := handleGzippedV2(a, payload, "application/json")
+	assert.Equal(w.Code, http.StatusAccepted)
+
+	assert.Equal(mockHoneycomb.Events()[0].Dataset, "write-traces")
+	assert.Equal(mockHoneycomb.Events()[0].SampleRate, uint(22))
+	assert.Equal(map[string]interface{}{
+		"id":          "bb433fd338b2cecb",
+		"traceId":     "8fe5ac327a4a4a88",
+		"name":        "persist",
+		"hostIPv4":    "10.129.211.121",
+		"serviceName": "shepherd",
+		"durationMs":  0.222,
+		"lc":          "shepherd",
+		"kind":        "CONSUMER",
+	}, mockHoneycomb.Events()[0].Fields())
+
+	// set samplerate to -22
+	sampleSpan.Tags["honeycomb.samplerate"] = -22
+
+	payload, err = json.Marshal([]v2.ZipkinJSONSpan{sampleSpan})
+	assert.NoError(err)
+	w = handleGzippedV2(a, payload, "application/json")
 	assert.Equal(w.Code, http.StatusAccepted)
 	libhoney.Close()
 	assert.Equal(mockHoneycomb.Events()[1].Dataset, "write-traces")
@@ -453,7 +589,7 @@ func TestSampling(t *testing.T) {
 				Name:    "someSpan",
 			}
 			body := serializeThriftSpans([]*zipkincore.Span{span})
-			w := handleGzipped(a, body, "application/x-thrift")
+			w := handleGzippedV1(a, body, "application/x-thrift")
 			assert.Equal(w.Code, http.StatusAccepted)
 		}
 	}
@@ -503,27 +639,47 @@ func newMockDownstream() *mockDownstream {
 	return m
 }
 
-func handle(a *App, payload []byte, contentType string) *httptest.ResponseRecorder {
-	r := httptest.NewRequest("POST", "/api/v1/spans",
-		bytes.NewReader(payload))
+func handleV1(a *App, payload []byte, contentType string) *httptest.ResponseRecorder {
+	r := httptest.NewRequest("POST", "/api/v1/spans", bytes.NewReader(payload))
 	r.Header.Add("Content-Type", contentType)
 	w := httptest.NewRecorder()
-	a.handleSpans(w, r)
+	a.handleSpansV1(w, r)
 	return w
 }
 
-func handleGzipped(a *App, payload []byte, contentType string) *httptest.ResponseRecorder {
+func handleV2(a *App, payload []byte, contentType string) *httptest.ResponseRecorder {
+	r := httptest.NewRequest("POST", "/api/v2/spans", bytes.NewReader(payload))
+	r.Header.Add("Content-Type", contentType)
+	w := httptest.NewRecorder()
+	a.handleSpansV2(w, r)
+	return w
+}
+
+func handleGzippedV1(a *App, payload []byte, contentType string) *httptest.ResponseRecorder {
 	var compressedPayload bytes.Buffer
 	zw := gzip.NewWriter(&compressedPayload)
 	zw.Write(payload)
 	zw.Close()
 
-	r := httptest.NewRequest("POST", "/api/v1/spans",
-		&compressedPayload)
+	r := httptest.NewRequest("POST", "/api/v1/spans", &compressedPayload)
 	r.Header.Add("Content-Encoding", "gzip")
 	r.Header.Add("Content-Type", contentType)
 	w := httptest.NewRecorder()
-	ungzipWrap(a.handleSpans)(w, r)
+	ungzipWrap(a.handleSpansV1)(w, r)
+	return w
+}
+
+func handleGzippedV2(a *App, payload []byte, contentType string) *httptest.ResponseRecorder {
+	var compressedPayload bytes.Buffer
+	zw := gzip.NewWriter(&compressedPayload)
+	zw.Write(payload)
+	zw.Close()
+
+	r := httptest.NewRequest("POST", "/api/v2/spans", &compressedPayload)
+	r.Header.Add("Content-Encoding", "gzip")
+	r.Header.Add("Content-Type", contentType)
+	w := httptest.NewRecorder()
+	ungzipWrap(a.handleSpansV2)(w, r)
 	return w
 }
 
