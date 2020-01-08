@@ -1,2 +1,15 @@
 honeycomb-opentracing-proxy
 .container-*
+vendor/**/AUTHORS
+vendor/**/LICENSE
+vendor/**/README.md
+vendor/**/CHANGELOG.md
+vendor/**/CONTRIBUTORS.md
+vendor/**/.gitignore
+vendor/**/.codecov.yml
+vendor/**/.travis.yml
+vendor/**/glide.*
+vendor/**/go.mod
+vendor/**/go.sum
+vendor/**/Makefile
+
