@@ -74,7 +74,6 @@ func main() {
 			os.Exit(1)
 		}
 
-		downstreamURL.Path = "/api/v1/spans"
 		mirror = &app.Mirror{
 			DownstreamURL: downstreamURL,
 		}

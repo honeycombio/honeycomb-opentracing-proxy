@@ -43,7 +43,7 @@ func (a *App) handleSpansV1(w http.ResponseWriter, r *http.Request) {
 	contentType := r.Header.Get("Content-Type")
 
 	if a.Mirror != nil {
-		if err := a.Mirror.Send(payload{ContentType: contentType, Body: data}); err != nil {
+		if err := a.Mirror.Send(payload{Endpoint: "/api/v1/spans", ContentType: contentType, Body: data}); err != nil {
 			logrus.WithError(err).Info("Error mirroring data")
 		}
 	}
@@ -90,7 +90,7 @@ func (a *App) handleSpansV2(w http.ResponseWriter, r *http.Request) {
 	contentType := r.Header.Get("Content-Type")
 
 	if a.Mirror != nil {
-		if err := a.Mirror.Send(payload{ContentType: contentType, Body: data}); err != nil {
+		if err := a.Mirror.Send(payload{Endpoint: "/api/v2/spans", ContentType: contentType, Body: data}); err != nil {
 			logrus.WithError(err).Info("Error mirroring data")
 		}
 	}
@@ -167,6 +167,7 @@ func (a *App) Stop() error {
 }
 
 type payload struct {
+	Endpoint    string
 	ContentType string
 	Body        []byte
 }
@@ -208,7 +209,9 @@ func (m *Mirror) Stop() error {
 
 func (m *Mirror) runWorker() {
 	for p := range m.payloads {
-		r, err := http.NewRequest("POST", m.DownstreamURL.String(), bytes.NewReader(p.Body))
+		downstreamURL := m.DownstreamURL
+		downstreamURL.Path = p.Endpoint
+		r, err := http.NewRequest("POST", downstreamURL.String(), bytes.NewReader(p.Body))
 		r.Header.Set("Content-Type", p.ContentType)
 		if err != nil {
 			logrus.WithError(err).Info("Error building downstream request")
