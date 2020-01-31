@@ -270,7 +270,7 @@ func TestMirroring(t *testing.T) {
 	mirror.Stop()
 
 	assert.Equal(len(m.payloads), 1)
-	assert.Equal(m.payloads[0].Endpoint, "/api/v1/spans")
+	assert.Equal(m.payloads[0].Endpoint, V1Endpoint)
 	assert.Equal(m.payloads[0].Body, data)
 	assert.Equal(m.payloads[0].ContentType, "application/x-thrift")
 }
@@ -309,7 +309,7 @@ func TestMirroringV2(t *testing.T) {
 	mirror.Stop()
 
 	assert.Equal(len(m.payloads), 1)
-	assert.Equal(m.payloads[0].Endpoint, "/api/v2/spans")
+	assert.Equal(m.payloads[0].Endpoint, V2Endpoint)
 	assert.Equal(m.payloads[0].Body, data)
 	assert.Equal(m.payloads[0].ContentType, "application/json")
 }
@@ -684,7 +684,7 @@ func newMockDownstream() *mockDownstream {
 }
 
 func handleV1(a *App, payload []byte, contentType string) *httptest.ResponseRecorder {
-	r := httptest.NewRequest("POST", "/api/v1/spans", bytes.NewReader(payload))
+	r := httptest.NewRequest("POST", V1Endpoint, bytes.NewReader(payload))
 	r.Header.Add("Content-Type", contentType)
 	w := httptest.NewRecorder()
 	a.handleSpansV1(w, r)
@@ -692,7 +692,7 @@ func handleV1(a *App, payload []byte, contentType string) *httptest.ResponseReco
 }
 
 func handleV2(a *App, payload []byte, contentType string) *httptest.ResponseRecorder {
-	r := httptest.NewRequest("POST", "/api/v2/spans", bytes.NewReader(payload))
+	r := httptest.NewRequest("POST", V2Endpoint, bytes.NewReader(payload))
 	r.Header.Add("Content-Type", contentType)
 	w := httptest.NewRecorder()
 	a.handleSpansV2(w, r)
@@ -705,7 +705,7 @@ func handleGzippedV1(a *App, payload []byte, contentType string) *httptest.Respo
 	zw.Write(payload)
 	zw.Close()
 
-	r := httptest.NewRequest("POST", "/api/v1/spans", &compressedPayload)
+	r := httptest.NewRequest("POST", V1Endpoint, &compressedPayload)
 	r.Header.Add("Content-Encoding", "gzip")
 	r.Header.Add("Content-Type", contentType)
 	w := httptest.NewRecorder()
@@ -719,7 +719,7 @@ func handleGzippedV2(a *App, payload []byte, contentType string) *httptest.Respo
 	zw.Write(payload)
 	zw.Close()
 
-	r := httptest.NewRequest("POST", "/api/v2/spans", &compressedPayload)
+	r := httptest.NewRequest("POST", V2Endpoint, &compressedPayload)
 	r.Header.Add("Content-Encoding", "gzip")
 	r.Header.Add("Content-Type", contentType)
 	w := httptest.NewRecorder()
