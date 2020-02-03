@@ -270,8 +270,48 @@ func TestMirroring(t *testing.T) {
 	mirror.Stop()
 
 	assert.Equal(len(m.payloads), 1)
+	assert.Equal(m.payloads[0].Endpoint, V1Endpoint)
 	assert.Equal(m.payloads[0].Body, data)
 	assert.Equal(m.payloads[0].ContentType, "application/x-thrift")
+}
+
+// TestMirroringV2 tests the mirroring of unmodified request data to a downstream
+// service for a Zipkin API V2 JSON payload.
+func TestMirroringV2(t *testing.T) {
+	assert := assert.New(t)
+	m := newMockDownstream()
+	defer m.server.Close()
+	ms := &MockSink{}
+
+	url, err := url.Parse(m.server.URL)
+	assert.NoError(err)
+
+	mirror := &Mirror{
+		DownstreamURL: url,
+	}
+	mirror.Start()
+
+	a := &App{
+		Sink:   ms,
+		Mirror: mirror,
+	}
+	a.Start()
+	defer a.Stop()
+
+	testFile, err := os.Open("testdata/payload_1.json")
+	assert.NoError(err)
+
+	data, err := ioutil.ReadAll(testFile)
+	assert.NoError(err)
+	w := handleV2(a, data, "application/json")
+	assert.Equal(w.Code, http.StatusAccepted)
+
+	mirror.Stop()
+
+	assert.Equal(len(m.payloads), 1)
+	assert.Equal(m.payloads[0].Endpoint, V2Endpoint)
+	assert.Equal(m.payloads[0].Body, data)
+	assert.Equal(m.payloads[0].ContentType, "application/json")
 }
 
 // Test that we still forward span data even when the "mirror" (e.g., a real
@@ -632,7 +672,11 @@ func newMockDownstream() *mockDownstream {
 			defer r.Body.Close()
 			data, _ := ioutil.ReadAll(r.Body)
 			m.Lock()
-			m.payloads = append(m.payloads, payload{ContentType: r.Header.Get("Content-Type"), Body: data})
+			m.payloads = append(m.payloads, payload{
+				Endpoint:    r.URL.Path,
+				ContentType: r.Header.Get("Content-Type"),
+				Body:        data,
+			})
 			m.Unlock()
 			w.WriteHeader(http.StatusAccepted)
 		}))
@@ -640,7 +684,7 @@ func newMockDownstream() *mockDownstream {
 }
 
 func handleV1(a *App, payload []byte, contentType string) *httptest.ResponseRecorder {
-	r := httptest.NewRequest("POST", "/api/v1/spans", bytes.NewReader(payload))
+	r := httptest.NewRequest("POST", V1Endpoint, bytes.NewReader(payload))
 	r.Header.Add("Content-Type", contentType)
 	w := httptest.NewRecorder()
 	a.handleSpansV1(w, r)
@@ -648,7 +692,7 @@ func handleV1(a *App, payload []byte, contentType string) *httptest.ResponseReco
 }
 
 func handleV2(a *App, payload []byte, contentType string) *httptest.ResponseRecorder {
-	r := httptest.NewRequest("POST", "/api/v2/spans", bytes.NewReader(payload))
+	r := httptest.NewRequest("POST", V2Endpoint, bytes.NewReader(payload))
 	r.Header.Add("Content-Type", contentType)
 	w := httptest.NewRecorder()
 	a.handleSpansV2(w, r)
@@ -661,7 +705,7 @@ func handleGzippedV1(a *App, payload []byte, contentType string) *httptest.Respo
 	zw.Write(payload)
 	zw.Close()
 
-	r := httptest.NewRequest("POST", "/api/v1/spans", &compressedPayload)
+	r := httptest.NewRequest("POST", V1Endpoint, &compressedPayload)
 	r.Header.Add("Content-Encoding", "gzip")
 	r.Header.Add("Content-Type", contentType)
 	w := httptest.NewRecorder()
@@ -675,7 +719,7 @@ func handleGzippedV2(a *App, payload []byte, contentType string) *httptest.Respo
 	zw.Write(payload)
 	zw.Close()
 
-	r := httptest.NewRequest("POST", "/api/v2/spans", &compressedPayload)
+	r := httptest.NewRequest("POST", V2Endpoint, &compressedPayload)
 	r.Header.Add("Content-Encoding", "gzip")
 	r.Header.Add("Content-Type", contentType)
 	w := httptest.NewRecorder()

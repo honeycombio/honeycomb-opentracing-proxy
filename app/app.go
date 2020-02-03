@@ -19,6 +19,9 @@ import (
 	v2 "github.com/honeycombio/honeycomb-opentracing-proxy/types/v2"
 )
 
+const V1Endpoint string = "/api/v1/spans"
+const V2Endpoint string = "/api/v2/spans"
+
 type App struct {
 	Port   string
 	server *http.Server
@@ -43,7 +46,7 @@ func (a *App) handleSpansV1(w http.ResponseWriter, r *http.Request) {
 	contentType := r.Header.Get("Content-Type")
 
 	if a.Mirror != nil {
-		if err := a.Mirror.Send(payload{ContentType: contentType, Body: data}); err != nil {
+		if err := a.Mirror.Send(payload{Endpoint: V1Endpoint, ContentType: contentType, Body: data}); err != nil {
 			logrus.WithError(err).Info("Error mirroring data")
 		}
 	}
@@ -90,7 +93,7 @@ func (a *App) handleSpansV2(w http.ResponseWriter, r *http.Request) {
 	contentType := r.Header.Get("Content-Type")
 
 	if a.Mirror != nil {
-		if err := a.Mirror.Send(payload{ContentType: contentType, Body: data}); err != nil {
+		if err := a.Mirror.Send(payload{Endpoint: V2Endpoint, ContentType: contentType, Body: data}); err != nil {
 			logrus.WithError(err).Info("Error mirroring data")
 		}
 	}
@@ -148,8 +151,8 @@ func ungzipWrap(hf func(http.ResponseWriter, *http.Request)) func(http.ResponseW
 
 func (a *App) Start() error {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/api/v1/spans", ungzipWrap(a.handleSpansV1))
-	mux.HandleFunc("/api/v2/spans", ungzipWrap(a.handleSpansV2))
+	mux.HandleFunc(V1Endpoint, ungzipWrap(a.handleSpansV1))
+	mux.HandleFunc(V2Endpoint, ungzipWrap(a.handleSpansV2))
 
 	a.server = &http.Server{
 		Addr:    a.Port,
@@ -167,6 +170,7 @@ func (a *App) Stop() error {
 }
 
 type payload struct {
+	Endpoint    string
 	ContentType string
 	Body        []byte
 }
@@ -208,7 +212,9 @@ func (m *Mirror) Stop() error {
 
 func (m *Mirror) runWorker() {
 	for p := range m.payloads {
-		r, err := http.NewRequest("POST", m.DownstreamURL.String(), bytes.NewReader(p.Body))
+		downstreamURL := m.DownstreamURL
+		downstreamURL.Path = p.Endpoint
+		r, err := http.NewRequest("POST", downstreamURL.String(), bytes.NewReader(p.Body))
 		r.Header.Set("Content-Type", p.ContentType)
 		if err != nil {
 			logrus.WithError(err).Info("Error building downstream request")
