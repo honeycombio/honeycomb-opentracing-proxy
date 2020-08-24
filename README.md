@@ -1,3 +1,11 @@
+# **This project is no longer under development!**
+
+This project is not actively maintained and you should not use it. New issues and pull requests will likely be ignored. OpenTracing has been superseeded by OpenTelementry.
+
+The [OpenTelemetry Collector](https://github.com/open-telemetry/opentelemetry-collector) can read & write multiple trace formats (including Zipkin and Honeycomb) and is the preferred alternative.
+
+---
+
 [![CircleCI](https://circleci.com/gh/honeycombio/honeycomb-opentracing-proxy.svg?style=svg)](https://circleci.com/gh/honeycombio/honeycomb-opentracing-proxy)
 
 `honeycomb-opentracing-proxy` is a drop-in compatible replacement for Zipkin.
