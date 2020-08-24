@@ -1,6 +1,6 @@
 # **This project is no longer under development!**
 
-This project is not actively maintained and you should not use it. New issues and pull requests will likely be ignored. OpenTracing has been superseeded by OpenTelementry.
+This project is not actively maintained and you should not use it. New issues and pull requests will likely be ignored. OpenTracing has been superseded by OpenTelementry.
 
 The [OpenTelemetry Collector](https://github.com/open-telemetry/opentelemetry-collector) can read & write multiple trace formats (including Zipkin and Honeycomb) and is the preferred alternative.
 
